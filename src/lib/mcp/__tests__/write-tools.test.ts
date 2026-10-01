@@ -407,4 +407,83 @@ describe('MCP Write Tools & Security Isolation', () => {
       expect(inDb).not.toBeNull();
     });
   });
+
+  describe('Archived Resources Protection', () => {
+    it('rejects update_context on archived context', async () => {
+      const archivedCtx = await prisma.context.create({
+        data: {
+          type: 'idea',
+          title: 'Archived Idea',
+          ownerId: userA.id,
+          isArchived: true,
+          isPublic: false,
+        },
+      });
+
+      await expect(
+        handleUpdateContext({
+          token: writeTokenA,
+          id: archivedCtx.id,
+          title: 'Should Fail',
+        })
+      ).rejects.toThrow('El contexto está archivado y no admite modificaciones');
+    });
+
+    it('rejects delete_context on archived context', async () => {
+      const archivedCtx = await prisma.context.create({
+        data: {
+          type: 'idea',
+          title: 'Archived Idea',
+          ownerId: userA.id,
+          isArchived: true,
+          isPublic: false,
+        },
+      });
+
+      await expect(
+        handleDeleteContext({
+          token: deleteTokenA,
+          id: archivedCtx.id,
+        })
+      ).rejects.toThrow('El contexto está archivado y no admite eliminación');
+    });
+
+    it('rejects publish_skill update on archived skill', async () => {
+      const archivedSkill = await prisma.skill.create({
+        data: {
+          slug: 'archived-skill-mcp',
+          name: 'Archived Skill',
+          ownerId: userA.id,
+          isArchived: true,
+        },
+      });
+
+      await expect(
+        handlePublishSkill({
+          token: writeTokenA,
+          id: archivedSkill.id,
+          slug: 'archived-skill-mcp',
+          name: 'Should Fail',
+        })
+      ).rejects.toThrow('La skill está archivada y no admite modificaciones');
+    });
+
+    it('rejects delete_skill on archived skill', async () => {
+      const archivedSkill = await prisma.skill.create({
+        data: {
+          slug: 'archived-skill-mcp-del',
+          name: 'Archived Skill',
+          ownerId: userA.id,
+          isArchived: true,
+        },
+      });
+
+      await expect(
+        handleDeleteSkill({
+          token: deleteTokenA,
+          id: archivedSkill.id,
+        })
+      ).rejects.toThrow('La skill está archivada y no admite eliminación');
+    });
+  });
 });

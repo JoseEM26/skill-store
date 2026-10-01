@@ -74,6 +74,14 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                     <span className="text-xs px-2 py-0.5 rounded font-mono bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                       v{latestVersion}
                     </span>
+                    {skill.isArchived && (
+                      <span
+                        data-testid="archived-badge"
+                        className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                      >
+                        Archivado
+                      </span>
+                    )}
                     <h4 className="text-base font-bold text-gray-900 dark:text-white">
                       {skill.name}
                     </h4>
@@ -114,19 +122,21 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                   </Link>
                   <button
                     type="button"
+                    disabled={skill.isArchived}
                     onClick={() => {
+                      if (skill.isArchived) return;
                       setShowCreate(false);
                       setEditingSkill(skill);
                     }}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(skill.id)}
-                    disabled={deletingId === skill.id}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-50"
+                    disabled={skill.isArchived || deletingId === skill.id}
+                    onClick={() => !skill.isArchived && handleDelete(skill.id)}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {deletingId === skill.id ? 'Borrando...' : 'Eliminar'}
                   </button>

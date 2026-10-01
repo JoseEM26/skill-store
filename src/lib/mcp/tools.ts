@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import semver from 'semver';
 import { sortVersionsDesc } from '@/lib/skills/semver';
 import { validateAccessToken } from '@/lib/auth/tokens';
+import { incrementInstallsCount } from '@/lib/catalog/counters';
 import { z } from 'zod';
 import { withAuthenticatedTool } from './auth';
 import {
@@ -34,6 +35,11 @@ export const searchSkillsInputSchema = z.object({
 });
 
 export const getSkillInputSchema = z.object({
+  owner: z.string().trim().min(1, 'El owner es requerido'),
+  slug: z.string().trim().min(1, 'El slug es requerido'),
+});
+
+export const installSkillInputSchema = z.object({
   owner: z.string().trim().min(1, 'El owner es requerido'),
   slug: z.string().trim().min(1, 'El slug es requerido'),
 });
@@ -147,7 +153,6 @@ export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>)
   const skill = await prisma.skill.findFirst({
     where: {
       slug: validated.slug,
-      isArchived: false,
       owner: { username: validated.owner },
     },
     include: {
@@ -175,6 +180,7 @@ export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>)
     license: skill.license,
     repositoryUrl: skill.repositoryUrl,
     owner: skill.owner.username,
+    isArchived: skill.isArchived,
     installCommand: `npx skills add ${skill.owner.username}/${skill.slug}`,
     downloadsCount: skill.downloadsCount,
     installsCount: skill.installsCount,
@@ -204,7 +210,6 @@ export async function handleGetVersion(input: z.input<typeof getVersionInputSche
   const skill = await prisma.skill.findFirst({
     where: {
       slug: validated.slug,
-      isArchived: false,
       owner: { username: validated.owner },
     },
     include: {
@@ -243,7 +248,6 @@ export async function handleCheckUpdates(input: z.input<typeof checkUpdatesInput
   const skill = await prisma.skill.findFirst({
     where: {
       slug: validated.slug,
-      isArchived: false,
       owner: { username: validated.owner },
     },
     include: {
@@ -524,11 +528,15 @@ export const handleUpdateContext = withAuthenticatedTool(
     const data = updateContextMcpSchema.parse(input);
 
     const existing = await prisma.context.findFirst({
-      where: { id: data.id, ownerId: ctx.ownerId, isArchived: false },
+      where: { id: data.id, ownerId: ctx.ownerId },
     });
 
     if (!existing) {
       throw new Error('Recurso no encontrado o no pertenece a tu usuario');
+    }
+
+    if (existing.isArchived) {
+      throw new Error('El contexto está archivado y no admite modificaciones');
     }
 
     const isPublic = existing.type === 'external_reference' ? true : (data.isPublic ?? existing.isPublic);
@@ -570,11 +578,15 @@ export const handleDeleteContext = withAuthenticatedTool(
     const data = deleteContextMcpSchema.parse(input);
 
     const existing = await prisma.context.findFirst({
-      where: { id: data.id, ownerId: ctx.ownerId, isArchived: false },
+      where: { id: data.id, ownerId: ctx.ownerId },
     });
 
     if (!existing) {
       throw new Error('Recurso no encontrado o no pertenece a tu usuario');
+    }
+
+    if (existing.isArchived) {
+      throw new Error('El contexto está archivado y no admite eliminación');
     }
 
     await prisma.context.delete({
@@ -601,11 +613,15 @@ export const handlePublishSkill = withAuthenticatedTool(
 
     if (data.id) {
       const existing = await prisma.skill.findFirst({
-        where: { id: data.id, ownerId: ctx.ownerId, isArchived: false },
+        where: { id: data.id, ownerId: ctx.ownerId },
       });
 
       if (!existing) {
         throw new Error('Skill no encontrada o no pertenece a tu usuario');
+      }
+
+      if (existing.isArchived) {
+        throw new Error('La skill está archivada y no admite modificaciones');
       }
 
       const updated = await prisma.skill.update({
@@ -676,13 +692,16 @@ export const handleDeleteSkill = withAuthenticatedTool(
     const existing = await prisma.skill.findFirst({
       where: {
         ownerId: ctx.ownerId,
-        isArchived: false,
         ...(data.id ? { id: data.id } : { slug: data.slug }),
       },
     });
 
     if (!existing) {
       throw new Error('Skill no encontrada o no pertenece a tu usuario');
+    }
+
+    if (existing.isArchived) {
+      throw new Error('La skill está archivada y no admite eliminación');
     }
 
     await prisma.skill.delete({
@@ -697,3 +716,68 @@ export const handleDeleteSkill = withAuthenticatedTool(
     };
   }
 );
+
+/**
+ * 14. install_skill: Increments installsCount and returns skill metadata and install command.
+ * Public tool - no authentication required (ADR-0009).
+ */
+export async function handleInstallSkill(input: z.input<typeof installSkillInputSchema>) {
+  const validated = installSkillInputSchema.parse(input);
+
+  const updated = await incrementInstallsCount(validated.owner, validated.slug);
+  if (!updated) {
+    const existing = await prisma.skill.findFirst({
+      where: {
+        slug: validated.slug,
+        owner: { username: validated.owner },
+      },
+      include: {
+        owner: { select: { username: true } },
+        versions: { orderBy: { publishedAt: 'desc' } },
+      },
+    });
+
+    if (!existing) {
+      throw new Error(`Skill '${validated.owner}/${validated.slug}' no encontrada.`);
+    }
+
+    const latestVersion = existing.versions[0]?.version || '1.0.0';
+
+    return {
+      success: true,
+      skill: `${validated.owner}/${validated.slug}`,
+      name: existing.name,
+      version: latestVersion,
+      installsCount: existing.installsCount,
+      downloadsCount: existing.downloadsCount,
+      isArchived: existing.isArchived,
+      installCommand: `npx skills add ${validated.owner}/${validated.slug}`,
+      message: `Skill '${validated.owner}/${validated.slug}' instalada correctamente.`,
+    };
+  }
+
+  const skill = await prisma.skill.findFirst({
+    where: {
+      id: updated.id,
+    },
+    include: {
+      owner: { select: { username: true } },
+      versions: { orderBy: { publishedAt: 'desc' } },
+    },
+  });
+
+  const latestVersion = skill?.versions[0]?.version || '1.0.0';
+
+  return {
+    success: true,
+    skill: `${validated.owner}/${validated.slug}`,
+    name: skill?.name,
+    version: latestVersion,
+    installsCount: updated.installsCount,
+    downloadsCount: updated.downloadsCount,
+    isArchived: skill?.isArchived ?? false,
+    installCommand: `npx skills add ${validated.owner}/${validated.slug}`,
+    message: `Skill '${validated.owner}/${validated.slug}' instalada correctamente.`,
+  };
+}
+

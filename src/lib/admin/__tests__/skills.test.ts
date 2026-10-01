@@ -107,4 +107,26 @@ describe('Admin Skills Service (Ownership & Isolation)', () => {
     const checkB = await getUserSkillById(skillB.id, userB.id);
     expect(checkB?.name).toBe('Skill Original B');
   });
+
+  it('rejects update and delete operations on archived skills with AuthorizationError', async () => {
+    const archivedSkill = await prisma.skill.create({
+      data: {
+        slug: 'archived-skill-mod-test',
+        name: 'Archived Skill',
+        ownerId: userA.id,
+        isArchived: true,
+      },
+    });
+
+    await expect(
+      updateUserSkill(userA.id, {
+        id: archivedSkill.id,
+        name: 'Should Fail',
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    await expect(
+      deleteUserSkill(archivedSkill.id, userA.id)
+    ).rejects.toThrow(AuthorizationError);
+  });
 });

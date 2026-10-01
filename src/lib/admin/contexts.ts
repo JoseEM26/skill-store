@@ -67,6 +67,10 @@ export async function updateIdea(ownerId: string, input: UpdateIdeaInput): Promi
     throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
   }
 
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden modificar recursos archivados');
+  }
+
   return await prisma.context.update({
     where: { id: data.id },
     data: {
@@ -109,6 +113,10 @@ export async function updateExternalReference(
     throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
   }
 
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden modificar recursos archivados');
+  }
+
   return await prisma.context.update({
     where: { id: data.id },
     data: {
@@ -128,6 +136,10 @@ export async function deleteUserContext(id: string, ownerId: string): Promise<Co
 
   if (!existing) {
     throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
+  }
+
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden eliminar recursos archivados');
   }
 
   return await prisma.context.delete({

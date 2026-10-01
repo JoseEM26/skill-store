@@ -198,4 +198,78 @@ describe('MCP Route Handler (/api/mcp)', () => {
     const deletedRes = JSON.parse(jsonDelSuccess.result.content[0].text);
     expect(deletedRes.success).toBe(true);
   });
+
+  it('POST /api/mcp executes tools/call for install_skill without authentication', async () => {
+    const testSkill = await prisma.skill.create({
+      data: {
+        slug: 'jsonrpc-install-skill',
+        name: 'JSONRPC Install Skill',
+        ownerId: user.id,
+        downloadsCount: 0,
+        installsCount: 0,
+        isArchived: false,
+      },
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 9,
+        method: 'tools/call',
+        params: {
+          name: 'install_skill',
+          arguments: {
+            owner: user.username,
+            slug: testSkill.slug,
+          },
+        },
+      }),
+    });
+
+    const res = await POST(req);
+    const json = await res.json();
+    expect(json.result.isError).toBeUndefined();
+    const parsed = JSON.parse(json.result.content[0].text);
+    expect(parsed.success).toBe(true);
+    expect(parsed.installsCount).toBe(1);
+
+    // Verify in DB
+    const inDb = await prisma.skill.findUnique({ where: { id: testSkill.id } });
+    expect(inDb?.installsCount).toBe(1);
+  });
+
+  it('responds with HTTP 429 Too Many Requests when IP rate limit is exceeded', async () => {
+    const rateLimitedIp = '10.99.88.77';
+
+    // Insert hits up to default limit
+    const hits = Array.from({ length: 60 }).map(() => ({
+      ip: rateLimitedIp,
+      endpoint: 'mcp_endpoint',
+    }));
+    await prisma.rateLimitHit.createMany({ data: hits });
+
+    const req = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      headers: {
+        'x-forwarded-for': rateLimitedIp,
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 10,
+        method: 'ping',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+    const json = await res.json();
+    expect(json.error).toBe('Too Many Requests');
+
+    // Cleanup
+    await prisma.rateLimitHit.deleteMany({
+      where: { ip: rateLimitedIp },
+    });
+  });
 });
+

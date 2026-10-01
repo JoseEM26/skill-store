@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:skills": "tsx scripts/validate-skills.ts",
-    "db:ingest-skills": "tsx scripts/ingest-skills.ts"
+    "db:ingest-skills": "tsx scripts/ingest-skills.ts",
+    "db:purge-rate-limits": "tsx scripts/purge-rate-limits.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",

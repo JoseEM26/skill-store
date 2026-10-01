@@ -80,6 +80,10 @@ export async function updateUserSkill(ownerId: string, input: UpdateSkillInput):
     throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
   }
 
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden modificar recursos archivados');
+  }
+
   return await prisma.skill.update({
     where: { id: data.id },
     data: {
@@ -98,6 +102,10 @@ export async function deleteUserSkill(id: string, ownerId: string): Promise<Skil
 
   if (!existing) {
     throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
+  }
+
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden eliminar recursos archivados');
   }
 
   return await prisma.skill.delete({

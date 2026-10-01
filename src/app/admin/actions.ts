@@ -25,6 +25,7 @@ import {
 } from '@/lib/admin/skills';
 import { createAccessTokenSchema } from '@/lib/validations/token';
 import { createAccessToken, revokeAccessToken } from '@/lib/auth/tokens';
+import { deleteAccountService } from '@/lib/auth/account';
 import type { AccessToken } from '@prisma/client';
 
 export interface ActionResult<T = unknown> {
@@ -199,6 +200,25 @@ export async function revokeAccessTokenAction(id: string): Promise<ActionResult>
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al revocar el token de acceso',
+    };
+  }
+}
+
+// --- ACCOUNT DELETION ---
+
+export async function deleteAccountAction(): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    await deleteAccountService(ownerId);
+    revalidatePath('/admin');
+    revalidatePath('/skills');
+    revalidatePath('/contexts');
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al eliminar la cuenta',
     };
   }
 }

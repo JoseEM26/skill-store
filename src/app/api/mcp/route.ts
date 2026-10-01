@@ -14,7 +14,9 @@ import {
   handleDeleteContext,
   handlePublishSkill,
   handleDeleteSkill,
+  handleInstallSkill,
 } from '@/lib/mcp/tools';
+import { rateLimitGuard } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -188,9 +190,26 @@ const AVAILABLE_TOOLS = [
       },
     },
   },
+  {
+    name: 'install_skill',
+    description: 'Registra la instalación de una skill incrementando su contador de popularidad de forma pública (ADR-0009) y devuelve los metadatos y comando de instalación.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        owner: { type: 'string', description: 'Nombre de usuario del propietario' },
+        slug: { type: 'string', description: 'Identificador slug de la skill' },
+      },
+      required: ['owner', 'slug'],
+    },
+  },
 ];
 
-export async function GET() {
+export async function GET(req?: NextRequest | Request) {
+  if (req) {
+    const rateLimitRes = await rateLimitGuard(req, 'mcp_discovery');
+    if (rateLimitRes) return rateLimitRes;
+  }
+
   return NextResponse.json({
     name: 'cloudcode-skills-registry',
     version: '0.1.0',
@@ -205,6 +224,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitRes = await rateLimitGuard(req, 'mcp_endpoint');
+  if (rateLimitRes) return rateLimitRes;
+
   const authHeader = req.headers.get('Authorization');
   const bearerToken = extractBearerToken(authHeader);
 
@@ -333,6 +355,9 @@ export async function POST(req: NextRequest) {
             toolArgs as Parameters<typeof handleDeleteSkill>[0],
             bearerToken
           );
+          break;
+        case 'install_skill':
+          data = await handleInstallSkill(toolArgs as Parameters<typeof handleInstallSkill>[0]);
           break;
         default:
           return NextResponse.json(

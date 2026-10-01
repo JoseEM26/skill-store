@@ -115,4 +115,46 @@ describe('Admin Contexts Service (Ownership & Isolation)', () => {
     const stillExists = await getUserContextById(ideaB.id, userB.id);
     expect(stillExists).not.toBeNull();
   });
+
+  it('rejects update and delete operations on archived contexts with AuthorizationError', async () => {
+    const archivedIdea = await prisma.context.create({
+      data: {
+        type: 'idea',
+        title: 'Archived Idea',
+        ownerId: userA.id,
+        isArchived: true,
+        isPublic: true,
+      },
+    });
+
+    await expect(
+      updateIdea(userA.id, {
+        id: archivedIdea.id,
+        title: 'Should Fail',
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    await expect(
+      deleteUserContext(archivedIdea.id, userA.id)
+    ).rejects.toThrow(AuthorizationError);
+
+    const archivedRef = await prisma.context.create({
+      data: {
+        type: 'external_reference',
+        title: 'Archived Ref',
+        link: 'https://example.com/archived',
+        ownerId: userA.id,
+        isArchived: true,
+        isPublic: true,
+      },
+    });
+
+    await expect(
+      updateExternalReference(userA.id, {
+        id: archivedRef.id,
+        title: 'Should Fail Ref',
+        link: 'https://example.com/archived-v2',
+      })
+    ).rejects.toThrow(AuthorizationError);
+  });
 });

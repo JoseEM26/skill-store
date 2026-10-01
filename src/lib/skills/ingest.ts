@@ -89,6 +89,16 @@ export async function ingestSkill(
         });
         action = 'created';
       } else {
+        if (existingSkill.isArchived) {
+          return {
+            success: false,
+            slug,
+            version: newVersion,
+            action: 'error',
+            error: 'La skill está archivada y no admite nuevas versiones ni modificaciones',
+          };
+        }
+
         // Update Skill metadata
         skillRecord = await tx.skill.update({
           where: { id: existingSkill.id },

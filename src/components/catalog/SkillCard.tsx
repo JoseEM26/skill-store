@@ -16,6 +16,14 @@ export function SkillCard({ skill }: { skill: CatalogSkillItem }) {
             <span className="inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
               Skill
             </span>
+            {skill.isArchived && (
+              <span
+                data-testid="archived-badge"
+                className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+              >
+                Archivado
+              </span>
+            )}
             <span className="ml-2 inline-block rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
               {versionStr}
             </span>

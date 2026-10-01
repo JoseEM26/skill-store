@@ -24,6 +24,8 @@ import {
   handlePublishSkill,
   publishSkillMcpSchema,
   handleDeleteSkill,
+  handleInstallSkill,
+  installSkillInputSchema,
 } from './tools';
 import { createContextMcpBaseSchema, deleteSkillMcpBaseSchema } from '@/lib/validations/mcp';
 
@@ -196,6 +198,19 @@ export function createMcpServer(bearerToken?: string | null) {
     deleteSkillMcpBaseSchema.shape,
     async (args) => {
       const result = await handleDeleteSkill(args, bearerToken);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+  );
+
+  // 14. install_skill
+  server.tool(
+    'install_skill',
+    'Registra la instalación de una skill incrementando su contador de popularidad de forma pública (ADR-0009) y devuelve los metadatos y comando de instalación.',
+    installSkillInputSchema.shape,
+    async (args) => {
+      const result = await handleInstallSkill(args);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

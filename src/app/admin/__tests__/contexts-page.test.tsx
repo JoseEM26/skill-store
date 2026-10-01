@@ -179,4 +179,24 @@ describe('Contexts Admin UI Components', () => {
       expect(actions.deleteContextAction).toHaveBeenCalledWith('ctx-idea-1');
     });
   });
+
+  it('renders "Archivado" badge and disables Edit/Delete buttons on archived contexts', () => {
+    const archivedContexts: Context[] = [
+      {
+        ...mockContexts[0],
+        id: 'archived-ctx-1',
+        isArchived: true,
+      },
+    ];
+
+    render(<ContextList initialContexts={archivedContexts} />);
+
+    expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
+
+    const editBtn = screen.getByText('Editar') as HTMLButtonElement;
+    const deleteBtn = screen.getByText('Eliminar') as HTMLButtonElement;
+
+    expect(editBtn.disabled).toBe(true);
+    expect(deleteBtn.disabled).toBe(true);
+  });
 });

@@ -9,6 +9,7 @@ import {
   handleListContexts,
   handleGetContext,
   handleGetMySetup,
+  handleInstallSkill,
 } from '../tools';
 import { createAccessToken } from '@/lib/auth/tokens';
 
@@ -297,4 +298,93 @@ describe('MCP Read Tools & Setup Service', () => {
       ).rejects.toThrow(/Autenticación fallida/i);
     });
   });
+
+  describe('install_skill tool (Popularity Tracking - ADR-0009)', () => {
+    let testSkill: { id: string; slug: string };
+
+    beforeEach(async () => {
+      testSkill = await prisma.skill.create({
+        data: {
+          slug: 'mcp-install-target',
+          name: 'MCP Install Target Skill',
+          ownerId: userA.id,
+          downloadsCount: 5,
+          installsCount: 10,
+          isArchived: false,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Initial version',
+            },
+          },
+        },
+      });
+    });
+
+    it('increments installsCount and returns metadata without authentication', async () => {
+      const result = await handleInstallSkill({
+        owner: userA.username,
+        slug: testSkill.slug,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.installsCount).toBe(11);
+      expect(result.skill).toBe(`${userA.username}/${testSkill.slug}`);
+      expect(result.installCommand).toBe(`npx skills add ${userA.username}/${testSkill.slug}`);
+
+      // Call second time
+      const result2 = await handleInstallSkill({
+        owner: userA.username,
+        slug: testSkill.slug,
+      });
+      expect(result2.installsCount).toBe(12);
+
+      // Verify in DB
+      const inDb = await prisma.skill.findUnique({ where: { id: testSkill.id } });
+      expect(inDb?.installsCount).toBe(12);
+    });
+
+    it('throws error for nonexistent skill', async () => {
+      await expect(
+        handleInstallSkill({ owner: userA.username, slug: 'nonexistent-slug' })
+      ).rejects.toThrow(/no encontrada/i);
+    });
+
+    it('allows consulting and installing an archived skill via MCP', async () => {
+      const archSkill = await prisma.skill.create({
+        data: {
+          slug: 'archived-mcp-target',
+          name: 'Archived MCP Skill',
+          ownerId: userA.id,
+          downloadsCount: 10,
+          installsCount: 5,
+          isArchived: true,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Archived skill initial',
+            },
+          },
+        },
+      });
+
+      // 1. handleGetSkill returns metadata and isArchived = true
+      const getRes = await handleGetSkill({
+        owner: userA.username,
+        slug: archSkill.slug,
+      });
+      expect(getRes.name).toBe('Archived MCP Skill');
+      expect(getRes.isArchived).toBe(true);
+
+      // 2. handleInstallSkill returns installCommand and success for archived skill
+      const installRes = await handleInstallSkill({
+        owner: userA.username,
+        slug: archSkill.slug,
+      });
+      expect(installRes.success).toBe(true);
+      expect(installRes.isArchived).toBe(true);
+      expect(installRes.installCommand).toBe(`npx skills add ${userA.username}/${archSkill.slug}`);
+    });
+  });
 });
+

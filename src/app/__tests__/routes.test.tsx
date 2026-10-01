@@ -119,6 +119,43 @@ describe('Catalog Routes and Pages', () => {
       expect(screen.getByText('npx skills add testuser/mock-slug')).toBeDefined();
     });
 
+    it('renders skill detail for different owners with same slug (coexistence)', async () => {
+      const getSkillSpy = vi.spyOn(catalogQueries, 'getSkillByOwnerAndSlug');
+
+      getSkillSpy.mockImplementation(async (owner, slug) => {
+        return {
+          id: `skill-${owner}`,
+          slug,
+          name: `Skill of ${owner}`,
+          description: `Description for ${owner}`,
+          license: 'MIT',
+          repositoryUrl: null,
+          downloadsCount: 0,
+          installsCount: 0,
+          owner: { id: `id-${owner}`, username: owner, avatarUrl: null },
+          latestVersion: { id: 'v1', version: '1.0.0', changelog: null, gitTag: null, publishedAt: new Date() },
+          versions: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      });
+
+      const pageA = await SkillDetailPage({
+        params: Promise.resolve({ owner: 'alice', slug: 'common-tool' }),
+      });
+      const { unmount } = render(pageA);
+      expect(screen.getByText('Skill of alice')).toBeDefined();
+      expect(screen.getByText('npx skills add alice/common-tool')).toBeDefined();
+      unmount();
+
+      const pageB = await SkillDetailPage({
+        params: Promise.resolve({ owner: 'bob', slug: 'common-tool' }),
+      });
+      render(pageB);
+      expect(screen.getByText('Skill of bob')).toBeDefined();
+      expect(screen.getByText('npx skills add bob/common-tool')).toBeDefined();
+    });
+
     it('triggers notFound() when skill is not found', async () => {
       vi.spyOn(catalogQueries, 'getSkillByOwnerAndSlug').mockResolvedValueOnce(null);
 

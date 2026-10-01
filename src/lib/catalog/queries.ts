@@ -19,6 +19,7 @@ export interface CatalogSkillItem {
   repositoryUrl: string | null;
   downloadsCount: number;
   installsCount: number;
+  isArchived?: boolean;
   owner: {
     username: string;
     avatarUrl: string | null;
@@ -42,6 +43,7 @@ export interface CatalogContextItem {
   body: string | null;
   link: string | null;
   tags: string[];
+  isArchived?: boolean;
   owner: {
     username: string;
     avatarUrl: string | null;
@@ -61,6 +63,7 @@ export interface SkillDetailResult {
   repositoryUrl: string | null;
   downloadsCount: number;
   installsCount: number;
+  isArchived?: boolean;
   owner: {
     id: string;
     username: string;
@@ -158,6 +161,7 @@ export async function getPublicCatalog(params?: CatalogQueryParams): Promise<{
         repositoryUrl: s.repositoryUrl,
         downloadsCount: s.downloadsCount,
         installsCount: s.installsCount,
+        isArchived: s.isArchived,
         owner: s.owner,
         latestVersion,
         createdAt: s.createdAt,
@@ -206,6 +210,7 @@ export async function getPublicCatalog(params?: CatalogQueryParams): Promise<{
         body: c.body,
         link: c.link,
         tags: c.tags,
+        isArchived: c.isArchived,
         owner: c.owner,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
@@ -275,6 +280,7 @@ export async function getSkillByOwnerAndSlug(
     repositoryUrl: skill.repositoryUrl,
     downloadsCount: skill.downloadsCount,
     installsCount: skill.installsCount,
+    isArchived: skill.isArchived,
     owner: skill.owner,
     latestVersion,
     versions: sortedVersions,

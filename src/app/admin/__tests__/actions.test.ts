@@ -10,6 +10,7 @@ import {
   deleteSkillAction,
   createAccessTokenAction,
   revokeAccessTokenAction,
+  deleteAccountAction,
 } from '../actions';
 import { hashToken } from '@/lib/auth/tokens';
 import type { Session } from 'next-auth';
@@ -243,5 +244,39 @@ describe('Admin Server Actions (Security & Authorization)', () => {
     // Verify token B remains active
     const checkTokenB = await prisma.accessToken.findUnique({ where: { id: tokenB.id } });
     expect(checkTokenB?.revokedAt).toBeNull();
+  });
+
+  it('deletes account through Server Action for authenticated user', async () => {
+    // Create resources for user A
+    await prisma.skill.create({
+      data: {
+        slug: 'del-act-skill',
+        name: 'Del Act Skill',
+        ownerId: userA.id,
+      },
+    });
+
+    await prisma.context.create({
+      data: {
+        type: 'idea',
+        title: 'Secret idea to delete',
+        ownerId: userA.id,
+        isPublic: false,
+      },
+    });
+
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const res = await deleteAccountAction();
+    expect(res.success).toBe(true);
+
+    const skillInDb = await prisma.skill.findFirst({ where: { slug: 'del-act-skill', ownerId: userA.id } });
+    expect(skillInDb?.isArchived).toBe(true);
+
+    const ideaInDb = await prisma.context.findFirst({ where: { title: 'Secret idea to delete', ownerId: userA.id } });
+    expect(ideaInDb).toBeNull();
   });
 });

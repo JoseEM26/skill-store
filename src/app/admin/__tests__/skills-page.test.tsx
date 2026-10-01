@@ -151,4 +151,24 @@ describe('Skills Admin UI Components', () => {
       expect(actions.deleteSkillAction).toHaveBeenCalledWith('skill-1');
     });
   });
+
+  it('renders "Archivado" badge and disables Edit/Delete buttons on archived skills', () => {
+    const archivedSkills: SkillWithVersions[] = [
+      {
+        ...mockSkills[0],
+        id: 'archived-skill-1',
+        isArchived: true,
+      },
+    ];
+
+    render(<SkillList initialSkills={archivedSkills} username="aybardev" />);
+
+    expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
+
+    const editBtn = screen.getByText('Editar') as HTMLButtonElement;
+    const deleteBtn = screen.getByText('Eliminar') as HTMLButtonElement;
+
+    expect(editBtn.disabled).toBe(true);
+    expect(deleteBtn.disabled).toBe(true);
+  });
 });

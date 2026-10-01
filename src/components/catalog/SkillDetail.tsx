@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SkillDetailResult } from '@/lib/catalog/queries';
 import { InstallSnippet } from './InstallSnippet';
 import { VersionHistory } from './VersionHistory';
+import { DownloadButton } from './DownloadButton';
 
 export function SkillDetail({ skill }: { skill: SkillDetailResult }) {
   const currentVersionStr = skill.latestVersion ? `v${skill.latestVersion.version}` : 'v1.0.0';
@@ -30,6 +31,14 @@ export function SkillDetail({ skill }: { skill: SkillDetailResult }) {
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
                 Skill
               </span>
+              {skill.isArchived && (
+                <span
+                  data-testid="archived-badge"
+                  className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                >
+                  Archivado
+                </span>
+              )}
               <span className="rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-mono font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                 {currentVersionStr}
               </span>
@@ -41,6 +50,14 @@ export function SkillDetail({ skill }: { skill: SkillDetailResult }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <DownloadButton
+              owner={skill.owner.username}
+              slug={skill.slug}
+              name={skill.name}
+              description={skill.description}
+              license={skill.license}
+              version={skill.latestVersion?.version}
+            />
             {skill.repositoryUrl && (
               <a
                 href={skill.repositoryUrl}
@@ -66,11 +83,11 @@ export function SkillDetail({ skill }: { skill: SkillDetailResult }) {
           </div>
           <div>
             <span className="font-medium text-zinc-700 dark:text-zinc-300">Descargas: </span>
-            {skill.downloadsCount}
+            <span data-testid="skill-downloads-count">{skill.downloadsCount}</span>
           </div>
           <div>
             <span className="font-medium text-zinc-700 dark:text-zinc-300">Instalaciones: </span>
-            {skill.installsCount}
+            <span data-testid="skill-installs-count">{skill.installsCount}</span>
           </div>
         </div>
       </div>

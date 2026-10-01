@@ -80,3 +80,12 @@ model AccessToken {
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
 }
+
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  ip        String
+  endpoint  String
+  createdAt DateTime @default(now())
+
+  @@index([ip, endpoint, createdAt])
+}

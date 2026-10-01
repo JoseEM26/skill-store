@@ -159,6 +159,15 @@ export function ContextList({ initialContexts }: ContextListProps) {
                     {item.isPublic ? 'Pública' : 'Privada'}
                   </span>
 
+                  {item.isArchived && (
+                    <span
+                      data-testid="archived-badge"
+                      className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                    >
+                      Archivado
+                    </span>
+                  )}
+
                   <h4 className="text-base font-bold text-gray-900 dark:text-white">{item.title}</h4>
                 </div>
 
@@ -194,20 +203,22 @@ export function ContextList({ initialContexts }: ContextListProps) {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
+                  disabled={item.isArchived}
                   onClick={() => {
+                    if (item.isArchived) return;
                     setShowCreateIdea(false);
                     setShowCreateRef(false);
                     setEditingContext(item);
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Editar
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deletingId === item.id}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-50"
+                  disabled={item.isArchived || deletingId === item.id}
+                  onClick={() => !item.isArchived && handleDelete(item.id)}
+                  className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {deletingId === item.id ? 'Borrando...' : 'Eliminar'}
                 </button>

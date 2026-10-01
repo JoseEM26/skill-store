@@ -165,5 +165,46 @@ describe('Catalog Components', () => {
     expect(screen.getByText('My Test Skill')).toBeDefined();
     expect(screen.getByText('npx skills add aybar_dev/my-test-skill')).toBeDefined();
     expect(screen.getByTestId('github-repo-link')).toBeDefined();
+    expect(screen.getByTestId('download-skill-btn')).toBeDefined();
+    expect(screen.getByTestId('skill-downloads-count').textContent).toBe('42');
+    expect(screen.getByTestId('skill-installs-count').textContent).toBe('15');
+  });
+
+  it('renders "Archivado" badge on SkillDetail, SkillCard, and ContextCard when isArchived is true', () => {
+    const archivedSkillItem: CatalogSkillItem = {
+      ...mockSkillItem,
+      isArchived: true,
+    };
+    const { unmount: unmountCard } = render(<SkillCard skill={archivedSkillItem} />);
+    expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
+    unmountCard();
+
+    const archivedContextItem: CatalogContextItem = {
+      ...mockContextItem,
+      isArchived: true,
+    };
+    const { unmount: unmountCtx } = render(<ContextCard context={archivedContextItem} />);
+    expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
+    unmountCtx();
+
+    const archivedDetail: SkillDetailResult = {
+      ...mockSkillItem,
+      isArchived: true,
+      latestVersion: {
+        id: 'v1',
+        version: '1.2.3',
+        changelog: 'Added shiny features',
+        gitTag: 'my-test-skill-v1.2.3',
+        publishedAt: new Date(),
+      },
+      versions: [],
+      owner: {
+        id: 'user-1',
+        username: 'aybar_dev',
+        avatarUrl: null,
+      },
+    };
+    render(<SkillDetail skill={archivedDetail} />);
+    expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
   });
 });

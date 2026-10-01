@@ -12,15 +12,25 @@ export function ContextCard({ context }: { context: CatalogContextItem }) {
     >
       <div>
         <div className="flex items-center justify-between gap-2">
-          <span
-            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              isExternal
-                ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-            }`}
-          >
-            {isExternal ? 'Referencia Externa' : 'Idea Pública'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                isExternal
+                  ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+              }`}
+            >
+              {isExternal ? 'Referencia Externa' : 'Idea Pública'}
+            </span>
+            {context.isArchived && (
+              <span
+                data-testid="archived-badge"
+                className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+              >
+                Archivado
+              </span>
+            )}
+          </div>
         </div>
 
         <h3 className="mt-3 text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
