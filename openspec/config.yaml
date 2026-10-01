@@ -1,0 +1,81 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Proyecto: CloudCode Skills Registry — registro central de skills, ideas propias y
+  referencias de contexto, consultable desde Claude Code vía MCP. Greenfield, equipo de
+  una sola persona, ritmo de fines de semana. Ver PRD.md, TECH-DESIGN.md, adrs/*.md y
+  BACKLOG.md en la raíz del repo para el detalle completo de cada decisión.
+
+  REGLA ACTIVA — desarrollo 100% local hasta el ítem #15 del backlog (BACKLOG.md): todo
+  cambio de los ítems #1-#14 corre contra el Postgres local en Docker ya levantado
+  (`docker-compose.yml`, puerto 5433, contenedor `skill_store_postgres`), nunca contra
+  Neon. Ningún `proposal.md`/`design.md`/`tasks.md` de esos ítems debe mencionar deploy,
+  Vercel, ni conexión a Neon — eso es exclusivamente el ítem #15 ("Conectar Vercel +
+  Neon"), el último del backlog, y no se toca hasta que el usuario lo pida explícitamente.
+  Las menciones a Neon/Vercel más abajo en este documento describen la arquitectura de
+  destino final (para cuando se implemente el ítem #15), no el setup de desarrollo actual.
+
+  Arquitectura: un único monolito Next.js (App Router) en TypeScript que sirve frontend,
+  API REST y el route handler de MCP (SDK oficial @modelcontextprotocol/sdk), todo en el
+  mismo repo y deploy (ADR-0001, ADR-0002).
+
+  Datos: PostgreSQL serverless en Neon, ORM Prisma, migraciones con
+  `prisma migrate deploy` como parte del build de Vercel; cada preview deployment usa una
+  branch de Neon aislada (ADR-0008). Modelo: User, Skill, SkillVersion, Context
+  (discriminador `type`: idea | external_reference), AccessToken (ADR-0003).
+
+  API: contrato REST validado con Zod en cada endpoint y en cada tool de MCP, mismos
+  schemas compartidos entre ambos (ADR-0004).
+
+  Estado/UI: React Server Components leen Postgres directo en cada request; filtros de
+  catálogo son query params en la URL; formularios de escritura usan Server Actions; cero
+  store cliente global (ADR-0005). Estilos con Tailwind CSS.
+
+  Auth: login solo vía GitHub OAuth (Auth.js/NextAuth), sesión como JWT firmado. Tokens de
+  acceso al MCP con scopes granulares (`read`/`write`/`delete`) por dueño, hash en DB
+  (nunca texto plano salvo al crearse). Regla transversal: lectura pública sin auth, toda
+  escritura exige token válido + scope correcto + ser dueño del recurso.
+
+  Resiliencia: si la API de GitHub falla o excede rate limit, se sirve el último dato
+  cacheado en Postgres en vez de fallar la petición (ADR-0006, sin circuit breaker ni
+  retry — descartados por sobre-ingeniería para el volumen esperado).
+
+  Rate limiting: contador de ventana deslizante en la misma base Postgres/Neon, sin
+  servicio externo (ADR-0007).
+
+  Fuente de verdad de skills: carpeta `skills/` del repo GitHub, con SKILL.md validado
+  (frontmatter, YAML, semver) vía GitHub Actions, que notifica al backend.
+
+  Testing: Vitest (+ React Testing Library). Gestor de paquetes: pnpm. Hosting: Vercel
+  free tier + Neon free tier — ambas restricciones mandatorias del usuario, no negociables
+  en ninguna decisión de diseño.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

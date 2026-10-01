@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plantilla Visual de Manuales de Usuario - ERP Aybar Corp</title>
+  <!-- Google Fonts: Sora para títulos principales y badges, IBM Plex Sans para textos y subtítulos, IBM Plex Mono para código/rutas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       SISTEMA DE DISEÑO MANUALES ERP AYBAR CORP (Extraído de Manual-Gestor-Tickets.pdf)
+       ========================================================================== */
+    
+    :root {
+      /* Fondos y lienzos */
+      --bg-canvas: #F4F7F6;            /* Fondo general de páginas de contenido */
+      --bg-cover-dark: #033744;        /* Fondo verde-petróleo oscuro de portada */
+      --bg-cover-pill: #184954;        /* Píldoras informativas en portada */
+      --bg-cover-top-pill: #205560;    /* Píldora superior en portada con bullet */
+      --bg-card: #FFFFFF;              /* Fondo de tarjetas blancas */
+      
+      /* Tipografía y textos */
+      --text-main: #142C2A;            /* Texto principal oscuro */
+      --text-muted: #55716D;           /* Texto secundario y captions */
+      --text-footer: #7C948F;          /* Texto del pie de página */
+      --text-white: #FFFFFF;           /* Texto blanco en portada */
+      --text-cover-muted: #D8E4E1;     /* Texto secundario en portada */
+
+      /* Acentos de Sección */
+      --badge-sec-bg: #E3EDEE;         /* Círculo de número de sección (menta pálido) */
+      --badge-sec-text: #033A45;       /* Número de sección (verde-petróleo) */
+
+      /* Pasos Numerados */
+      --badge-step-bg: #FDECE0;        /* Círculo de paso (durazno suave) */
+      --badge-step-text: #C2410C;      /* Número de paso (naranja-terracota) */
+
+      /* Cajas de Aviso */
+      --box-tip-bg: #E3EDEE;           /* Caja de tip (fondo menta suave) */
+      --box-tip-border: #D8E4E1;       /* Borde suave de caja tip */
+      --box-tip-text: #142C2A;         /* Texto de tip */
+
+      --box-warning-bg: #FDECE0;       /* Caja de advertencia (fondo durazno suave) */
+      --box-warning-border: #FDEADE;   /* Borde suave advertencia */
+      --box-warning-title: #A3540A;     /* Título de advertencia */
+      --box-warning-text: #A3540A;      /* Texto advertencia */
+
+      /* Tag de Captura Real */
+      --tag-capture-bg: #E3F3E8;       /* Tag ✓ CAPTURA REAL */
+      --tag-capture-text: #15803D;     /* Texto verde oscuro tag */
+
+      /* Mini-frame estilo ventana Mac */
+      --mac-header-bg: #DDE9E6;        /* Barra superior Mac */
+      --mac-body-bg: #EAF1EF;          /* Cuerpo contenedor Mac */
+      --mac-dot-red: #EF7373;          /* Botón cerrar Mac */
+      --mac-dot-yellow: #ECC16B;       /* Botón minimizar Mac */
+      --mac-dot-green: #74C58C;        /* Botón maximizar Mac */
+
+      /* Badges Semánticos de Estado (Lista de Estados) */
+      --status-nuevo-bg: #E5F2FD;
+      --status-nuevo-text: #2196F3;
+      --status-gestion-bg: #F6ECD9;
+      --status-gestion-text: #A16207;
+      --status-espera-bg: #FDECE0;
+      --status-espera-text: #C2410C;
+      --status-derivado-bg: #EAF6F4;
+      --status-derivado-text: #55716D;
+      --status-cerrado-bg: #EAF6F4;
+      --status-cerrado-text: #15803D;
+      --status-eliminado-bg: #FBE3EA;
+      --status-eliminado-text: #D1355C;
+      --status-atendido-bg: #E9EDF1;
+      --status-atendido-text: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Contenedor tipo página impresa / preview A4 */
+    .page-container {
+      max-width: 920px;
+      margin: 40px auto;
+      background: transparent;
+      padding: 0 20px;
+    }
+
+    /* ==========================================================================
+       BLOQUE 1: PORTADA CON FONDO VERDE-PETRÓLEO OSCURO Y TARJETA TOC
+       ========================================================================== */
+    .cover-wrapper {
+      background-color: var(--bg-cover-dark);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(3, 55, 68, 0.15);
+      margin-bottom: 50px;
+    }
+
+    .cover-hero {
+      padding: 55px 50px 45px 50px;
+      color: var(--text-white);
+    }
+
+    .cover-top-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--bg-cover-top-pill);
+      color: #EAF6F4;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      margin-bottom: 24px;
+    }
+
+    .cover-top-pill::before {
+      content: "•";
+      font-size: 14px;
+      color: #74C58C;
+    }
+
+    .cover-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text-white);
+      margin-bottom: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-subtitle {
+      font-size: 16px;
+      color: var(--text-cover-muted);
+      line-height: 1.55;
+      margin-bottom: 28px;
+      max-width: 720px;
+    }
+
+    .cover-pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .cover-pill {
+      display: inline-block;
+      background-color: var(--bg-cover-pill);
+      color: #E3EDEE;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Tarjeta TOC ('EN ESTE MANUAL') anidada en portada */
+    .toc-card {
+      background-color: var(--bg-card);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 40px 50px 50px 50px;
+    }
+
+    .toc-header {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .toc-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #DDE9E6;
+      color: var(--badge-sec-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       BLOQUE 2: TARJETA BLANCA DE SECCIÓN Y CONTENIDO
+       ========================================================================== */
+    .section-card {
+      background-color: var(--bg-card);
+      border-radius: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+      padding: 45px 50px;
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .section-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: var(--badge-sec-bg);
+      color: var(--badge-sec-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .section-intro {
+      font-size: 15.5px;
+      color: var(--text-main);
+      margin-bottom: 22px;
+      line-height: 1.65;
+    }
+
+    .section-intro strong {
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       BLOQUE 3: LISTA DE PASOS NUMERADOS (BADGES NARANJA)
+       ========================================================================== */
+    .steps-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .step-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--badge-step-bg);
+      color: var(--badge-step-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content strong {
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       BLOQUE 4: CAJAS DE AVISO (TIP Y ADVERTENCIA)
+       ========================================================================== */
+    .callout-box {
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 24px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .callout-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .callout-tip {
+      background-color: var(--box-tip-bg);
+      border: 1px solid var(--box-tip-border);
+      color: var(--box-tip-text);
+    }
+
+    .callout-warning {
+      background-color: var(--box-warning-bg);
+      border: 1px solid var(--box-warning-border);
+      color: var(--box-warning-text);
+    }
+
+    .callout-warning strong {
+      color: var(--box-warning-title);
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       BLOQUE 5: TAG CAPTURA REAL + FRAME + CAPTION
+       ========================================================================== */
+    .capture-block {
+      margin: 32px 0 24px 0;
+    }
+
+    .capture-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--tag-capture-bg);
+      color: var(--tag-capture-text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 14px;
+    }
+
+    .capture-frame {
+      background: #FFFFFF;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E9EDF1;
+    }
+
+    .capture-frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .capture-caption {
+      text-align: center;
+      font-size: 13.5px;
+      font-style: italic;
+      color: var(--text-muted);
+      margin-top: 10px;
+      padding: 0 10px;
+    }
+
+    /* ==========================================================================
+       BLOQUE 6: MINI-FRAME ESTILO VENTANA MAC PARA ILUSTRACIONES CONCEPTUALES
+       ========================================================================== */
+    .mac-window {
+      background-color: var(--mac-body-bg);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      border: 1px solid #DDE9E6;
+      margin: 28px 0;
+    }
+
+    .mac-window-bar {
+      background-color: var(--mac-header-bg);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mac-dots {
+      display: flex;
+      gap: 6px;
+      margin-right: 10px;
+    }
+
+    .mac-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mac-dot.red { background-color: var(--mac-dot-red); }
+    .mac-dot.yellow { background-color: var(--mac-dot-yellow); }
+    .mac-dot.green { background-color: var(--mac-dot-green); }
+
+    .mac-breadcrumb {
+      background-color: #FFFFFF;
+      color: var(--text-muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .mac-window-content {
+      padding: 24px;
+    }
+
+    /* ==========================================================================
+       BLOQUE 7: GRID DE LEYENDA DE ESTADOS (LISTA DE ESTADOS)
+       ========================================================================== */
+    .status-section-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 24px 0 16px 0;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .status-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E9EDF1;
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .status-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 10px;
+    }
+
+    .status-badge.nuevo { background-color: var(--status-nuevo-bg); color: var(--status-nuevo-text); }
+    .status-badge.gestion { background-color: var(--status-gestion-bg); color: var(--status-gestion-text); }
+    .status-badge.espera { background-color: var(--status-espera-bg); color: var(--status-espera-text); }
+    .status-badge.derivado { background-color: var(--status-derivado-bg); color: var(--status-derivado-text); }
+    .status-badge.cerrado { background-color: var(--status-cerrado-bg); color: var(--status-cerrado-text); }
+    .status-badge.eliminado { background-color: var(--status-eliminado-bg); color: var(--status-eliminado-text); }
+    .status-badge.atendido { background-color: var(--status-atendido-bg); color: var(--status-atendido-text); }
+
+    .status-desc {
+      font-size: 13.5px;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    /* ==========================================================================
+       BLOQUE 8: SECCIÓN DE PREGUNTAS FRECUENTES (FAQ)
+       ========================================================================== */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .faq-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E9EDF1;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .faq-question {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .faq-question .faq-emoji {
+      font-size: 18px;
+    }
+
+    .faq-answer {
+      font-size: 14.5px;
+      color: var(--text-main);
+      line-height: 1.6;
+      padding-left: 28px;
+    }
+
+    /* ==========================================================================
+       BLOQUE 9: FOOTER CENTRADO
+       ========================================================================== */
+    .manual-footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-footer);
+      padding: 30px 0 50px 0;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-container">
+
+    <!-- ==========================================================================
+         EJEMPLO 1: PORTADA COMPLETA CON TARJETA 'EN ESTE MANUAL'
+         ========================================================================== -->
+    <div class="cover-wrapper">
+      <div class="cover-hero">
+        <!-- Badge píldora superior con bullet -->
+        <div class="cover-top-pill">MÓDULO ERP · NOMBRE DEL SUBSISTEMA</div>
+        
+        <!-- Título principal en Sora Bold -->
+        <h1 class="cover-title">Manual de Usuario:<br>Nombre del Módulo</h1>
+        
+        <!-- Subtítulo en IBM Plex Sans -->
+        <p class="cover-subtitle">
+          Guía paso a paso y referencia operativa exhaustiva para la gestión de procesos, estados, evidencias y auditoría de extremo a extremo en la plataforma.
+        </p>
+
+        <!-- 3 píldoras informativas debajo -->
+        <div class="cover-pills-row">
+          <span class="cover-pill">12 secciones</span>
+          <span class="cover-pill">Para personal operativo y supervisión</span>
+          <span class="cover-pill">ERP Aybar Corp</span>
+        </div>
+      </div>
+
+      <!-- Tarjeta TOC 'EN ESTE MANUAL' -->
+      <div class="toc-card">
+        <div class="toc-header">EN ESTE MANUAL</div>
+        <ul class="toc-list">
+          <li class="toc-item">
+            <span class="toc-number">1</span>
+            <span>Acceso, navegación y control de permisos</span>
+          </li>
+          <li class="toc-item">
+            <span class="toc-number">2</span>
+            <span>Búsqueda, filtros y visualización de registros</span>
+          </li>
+          <li class="toc-item">
+            <span class="toc-number">3</span>
+            <span>Carga de expedientes y validaciones de negocio</span>
+          </li>
+          <li class="toc-item">
+            <span class="toc-number">4</span>
+            <span>Lista de estados</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+
+    <!-- ==========================================================================
+         EJEMPLO 2: SECCIÓN DE CONTENIDO CON PASOS, TIPS, ADVERTENCIAS Y CAPTURA REAL
+         ========================================================================== -->
+    <div class="section-card">
+      <!-- Header de sección con número en círculo menta -->
+      <div class="section-header">
+        <div class="section-badge">1</div>
+        <h2 class="section-title">Registro y evaluación de expedientes</h2>
+      </div>
+
+      <p class="section-intro">
+        Antes de procesar la solicitud, el sistema valida la identidad del cliente y las condiciones del contrato en tiempo real. Cada paso asegura la consistencia de la información antes de guardar.
+      </p>
+
+      <!-- Lista de pasos numerados con badges naranja -->
+      <ul class="steps-list">
+        <li class="step-item">
+          <div class="step-badge">1</div>
+          <div class="step-content">
+            Desde el <strong>Listado Principal</strong>, haz clic en el botón <strong>Nuevo Registro</strong> (arriba a la derecha).
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-badge">2</div>
+          <div class="step-content">
+            En el campo <strong>DNI/RUC</strong>, escribe el número del documento y presiona <strong>Buscar</strong> para cargar los datos del cliente.
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-badge">3</div>
+          <div class="step-content">
+            Verifica el proyecto y lote asignado, selecciona las cuotas correspondientes y confirma con <strong>Guardar</strong>.
+          </div>
+        </li>
+      </ul>
+
+      <!-- Caja de Tip (💡) -->
+      <div class="callout-box callout-tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          Puedes verificar el historial previo del expediente presionando sobre el botón <strong>Historial</strong> sin perder los datos ya ingresados en el formulario actual.
+        </div>
+      </div>
+
+      <!-- Caja de Advertencia (⚠️) -->
+      <div class="callout-box callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <strong>Atención:</strong> Si el registro posee cuotas pendientes de regularización, el sistema no permitirá asociar nueva evidencia física hasta que el saldo sea cero.
+        </div>
+      </div>
+
+      <!-- Bloque de Captura Real: Tag píldora + Frame con sombra + Caption centrado -->
+      <div class="capture-block">
+        <div class="capture-tag">✓ CAPTURA REAL — /erp/modulo/crear</div>
+        <div class="capture-frame">
+          <!-- Reemplazar src por la ruta relativa a capturas/archivo.png -->
+          <img src="capturas/ejemplo-captura.png" alt="Pantalla de registro y consulta de expediente" onerror="this.parentElement.style.padding='40px'; this.parentElement.style.textAlign='center'; this.parentElement.style.color='#7C948F'; this.parentElement.innerHTML='[Vista previa del frame de captura: capturas/archivo.png]';">
+        </div>
+        <div class="capture-caption">
+          Vista general del formulario de creación y consulta federada de contratos en tiempo real.
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==========================================================================
+         EJEMPLO 3: ILUSTRACIÓN CONCEPTUAL CON MINI-FRAME ESTILO VENTANA MAC
+         ========================================================================== -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge">2</div>
+        <h2 class="section-title">Estructura de acciones rápidas</h2>
+      </div>
+
+      <p class="section-intro">
+        Para operaciones que no requieren capturas completas o representan flujos esquemáticos, se utiliza el contenedor estilo ventana de sistema:
+      </p>
+
+      <div class="mac-window">
+        <div class="mac-window-bar">
+          <div class="mac-dots">
+            <span class="mac-dot red"></span>
+            <span class="mac-dot yellow"></span>
+            <span class="mac-dot green"></span>
+          </div>
+          <span class="mac-breadcrumb">Expediente › Estado › Cambio</span>
+        </div>
+        <div class="mac-window-content">
+          <p style="font-size: 14px; color: #55716D;">
+            [Contenido conceptual, diagrama esquemático o selector de estado interactivo]
+          </p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==========================================================================
+         EJEMPLO 4: SECCIÓN 'LISTA DE ESTADOS' (GRID DE 2 COLUMNAS)
+         ========================================================================== -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge">3</div>
+        <h2 class="section-title">Lista de estados</h2>
+      </div>
+
+      <p class="section-intro">
+        Referencia rápida para reconocer el significado y comportamiento de cada estado del módulo:
+      </p>
+
+      <h3 class="status-section-title">Estados principales del módulo</h3>
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="status-badge nuevo">Nuevo</span>
+          <p class="status-desc">Recién registrado en la plataforma, pendiente de revisión inicial por el gestor.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge gestion">En Gestión</span>
+          <p class="status-desc">Un usuario ha tomado el registro y se encuentra ejecutando las tareas asignadas.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge espera">En Espera Cliente</span>
+          <p class="status-desc">El proceso está pausado a la espera de documentación o respuesta del titular.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge derivado">Derivado</span>
+          <p class="status-desc">Transferido a otra área o departamento especializado para su resolución.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge atendido">Atendido</span>
+          <p class="status-desc">Acción concluida favorablemente, listo para verificación y cierre.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge cerrado">Cerrado</span>
+          <p class="status-desc">Expediente finalizado y archivado formalmente en el sistema.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-badge eliminado">Eliminado</span>
+          <p class="status-desc">Anulado por error de carga o desistimiento; no computa en carga laboral activa.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==========================================================================
+         EJEMPLO 5: PREGUNTAS FRECUENTES (FAQ)
+         ========================================================================== -->
+    <div class="section-card">
+      <h2 class="section-title" style="margin-bottom: 24px;">Preguntas frecuentes</h2>
+      
+      <div class="faq-list">
+        <div class="faq-card">
+          <div class="faq-question">
+            <span class="faq-emoji">🧑💼</span>
+            <span>¿Por qué no puedo editar un registro ya archivado?</span>
+          </div>
+          <div class="faq-answer">
+            Los expedientes con constancia física vinculada y firma de auditoría requieren permisos especiales de supervisión (`constancia.editar` o `constancia.separar`) para garantizar la inmutabilidad de la evidencia.
+          </div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-question">
+            <span class="faq-emoji">🧑💼</span>
+            <span>¿Qué ocurre si selecciono solo una parte de las cuotas al reemplazar?</span>
+          </div>
+          <div class="faq-answer">
+            El sistema activa automáticamente la operación de <strong>Separación</strong>, creando una nueva constancia para las cuotas seleccionadas y preservando la original para las restantes.
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==========================================================================
+         EJEMPLO 6: FOOTER CENTRADO
+         ========================================================================== -->
+    <footer class="manual-footer">
+      Manual de Usuario · Módulo de Archivamiento · ERP Aybar Corp
+    </footer>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  githubId  String   @unique
+  username  String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  skills       Skill[]
+  contexts     Context[]
+  accessTokens AccessToken[]
+}
+
+model Skill {
+  id             String         @id @default(cuid())
+  slug           String
+  name           String
+  description    String?
+  ownerId        String
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  license        String?
+  repositoryUrl  String?
+  downloadsCount Int            @default(0)
+  installsCount  Int            @default(0)
+  isArchived     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  versions       SkillVersion[]
+
+  @@unique([ownerId, slug])
+}
+
+model SkillVersion {
+  id          String   @id @default(cuid())
+  skillId     String
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  version     String
+  changelog   String?
+  gitTag      String?
+  publishedAt DateTime @default(now())
+
+  @@unique([skillId, version])
+}
+
+model Context {
+  id         String   @id @default(cuid())
+  type       String
+  title      String
+  body       String?
+  link       String?
+  tags       String[]
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic   Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AccessToken {
+  id         String    @id @default(cuid())
+  ownerId    String
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  scopes     String[]
+  label      String?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+}

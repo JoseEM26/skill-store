@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skill_store_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: skill_store
+    ports:
+      - "5433:5432"
+    volumes:
+      - skill_store_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d skill_store"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  skill_store_pgdata:
+    name: skill_store_postgres_data

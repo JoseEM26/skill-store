@@ -1,0 +1,45 @@
+name: Validate Skills & SemVer
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'src/lib/skills/**'
+      - 'scripts/**'
+      - '.github/workflows/validate-skills.yml'
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'skills/**'
+      - 'src/lib/skills/**'
+      - 'scripts/**'
+
+jobs:
+  validate:
+    name: Lint, Frontmatter & SemVer Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate SKILL.md frontmatter & SemVer
+        run: pnpm test:skills
+
+      - name: Run unit tests
+        run: pnpm test
