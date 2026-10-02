@@ -271,5 +271,62 @@ describe('MCP Route Handler (/api/mcp)', () => {
       where: { ip: rateLimitedIp },
     });
   });
+
+  it('POST /api/mcp executes get_skill and get_version returning files', async () => {
+    const skill = await prisma.skill.create({
+      data: {
+        slug: 'jsonrpc-files-skill',
+        name: 'JSONRPC Files Skill',
+        ownerId: user.id,
+        isPublic: true,
+        isPaused: false,
+        versions: {
+          create: {
+            version: '1.0.0',
+            changelog: 'Initial version with files',
+            files: { 'SKILL.md': '# Hello', 'config.json': '{"a": 1}' },
+          },
+        },
+      },
+    });
+
+    // 1. get_skill
+    const reqSkill = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 11,
+        method: 'tools/call',
+        params: {
+          name: 'get_skill',
+          arguments: { owner: user.username, slug: skill.slug },
+        },
+      }),
+    });
+    const resSkill = await POST(reqSkill);
+    const jsonSkill = await resSkill.json();
+    expect(jsonSkill.result.isError).toBeUndefined();
+    const parsedSkill = JSON.parse(jsonSkill.result.content[0].text);
+    expect(parsedSkill.latestVersion.files).toEqual({ 'SKILL.md': '# Hello', 'config.json': '{"a": 1}' });
+
+    // 2. get_version
+    const reqVersion = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 12,
+        method: 'tools/call',
+        params: {
+          name: 'get_version',
+          arguments: { owner: user.username, slug: skill.slug, version: '1.0.0' },
+        },
+      }),
+    });
+    const resVersion = await POST(reqVersion);
+    const jsonVersion = await resVersion.json();
+    expect(jsonVersion.result.isError).toBeUndefined();
+    const parsedVersion = JSON.parse(jsonVersion.result.content[0].text);
+    expect(parsedVersion.files).toEqual({ 'SKILL.md': '# Hello', 'config.json': '{"a": 1}' });
+  });
 });
 

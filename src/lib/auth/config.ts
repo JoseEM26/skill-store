@@ -15,7 +15,7 @@ export const authConfig: NextAuthConfig = {
   },
   secret: process.env.AUTH_SECRET || 'dummy-auth-secret-for-local-testing-32-chars-long-min',
   pages: {
-    signIn: '/api/auth/signin',
+    signIn: '/login',
   },
   callbacks: {
     async jwt({ token, user, account, profile }) {

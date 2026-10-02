@@ -31,67 +31,71 @@ export function ContextList({ initialContexts }: ContextListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Actions & Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex rounded-md shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded ${
-              activeTab === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Todos ({initialContexts.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('idea')}
-            className={`px-3 py-1.5 text-xs font-medium rounded ${
-              activeTab === 'idea'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Ideas ({initialContexts.filter((c) => c.type === 'idea').length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('external_reference')}
-            className={`px-3 py-1.5 text-xs font-medium rounded ${
-              activeTab === 'external_reference'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Referencias ({initialContexts.filter((c) => c.type === 'external_reference').length})
-          </button>
-        </div>
+      {/* Actions & Filters Cluster */}
+      <div className="bg-surface-container-lowest rounded-xl border border-surface-container-highest p-3 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Quick Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'all'
+                  ? 'bg-primary text-on-primary shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'
+              }`}
+            >
+              <span>Todos ({initialContexts.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('idea')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'idea'
+                  ? 'bg-primary text-on-primary shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'
+              }`}
+            >
+              <span>Ideas ({initialContexts.filter((c) => c.type === 'idea').length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('external_reference')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'external_reference'
+                  ? 'bg-primary text-on-primary shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'
+              }`}
+            >
+              <span>Referencias ({initialContexts.filter((c) => c.type === 'external_reference').length})</span>
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setShowCreateRef(false);
-              setEditingContext(null);
-              setShowCreateIdea(!showCreateIdea);
-            }}
-            className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded shadow-sm"
-          >
-            + Nueva Idea
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowCreateIdea(false);
-              setEditingContext(null);
-              setShowCreateRef(!showCreateRef);
-            }}
-            className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded shadow-sm"
-          >
-            + Nueva Referencia
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateRef(false);
+                setEditingContext(null);
+                setShowCreateIdea(!showCreateIdea);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-surface-container-highest bg-surface-container-lowest hover:bg-surface-container text-on-surface shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <span>+ Nueva Idea</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateIdea(false);
+                setEditingContext(null);
+                setShowCreateRef(!showCreateRef);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-primary text-on-primary hover:bg-primary-dim shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              <span>+ Nueva Referencia</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -123,110 +127,143 @@ export function ContextList({ initialContexts }: ContextListProps) {
         />
       )}
 
-      {/* Contexts List */}
+      {/* Contexts Data Table */}
       {filtered.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-800">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <div className="text-center py-12 bg-surface-container-lowest rounded-xl border border-dashed border-surface-container-highest">
+          <p className="text-on-surface-variant text-sm">
             No tienes contextos registrados en esta vista.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filtered.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white dark:bg-gray-900 p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            >
-              <div className="space-y-1.5 max-w-2xl">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded font-semibold uppercase tracking-wider ${
-                      item.type === 'idea'
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
-                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                    }`}
-                  >
-                    {item.type === 'idea' ? 'Idea' : 'Referencia'}
-                  </span>
+        <div className="bg-surface-container-lowest rounded-xl border border-surface-container-highest shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-surface-container-highest bg-surface-container-low/50 text-[11px] font-mono font-medium text-on-surface-variant uppercase tracking-wider">
+                  <th className="py-3 px-4" scope="col">Nombre y descripción</th>
+                  <th className="py-3 px-3" scope="col">Tipo</th>
+                  <th className="py-3 px-3" scope="col">Visibilidad</th>
+                  <th className="py-3 px-3" scope="col">Etiquetas / Tags</th>
+                  <th className="py-3 px-4 text-right" scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-container-highest/70 text-xs">
+                {filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-surface-container-low/40 transition-colors group">
+                    <td className="py-3.5 px-4 max-w-sm">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-surface-container-high text-primary shrink-0 mt-0.5 text-sm">
+                          {item.type === 'idea' ? '💡' : '🔗'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-semibold text-on-surface text-xs">
+                              {item.title}
+                            </span>
+                          </div>
+                          {item.body && (
+                            <p className="text-[11px] text-on-surface-variant mt-0.5 line-clamp-2 leading-relaxed">
+                              {item.body}
+                            </p>
+                          )}
+                          {item.link && (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-mono text-primary hover:underline flex items-center gap-1 mt-1 truncate max-w-xs"
+                            >
+                              🔗 {item.link}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </td>
 
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      item.isPublic
-                        ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300 border border-green-200 dark:border-green-800'
-                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                    }`}
-                  >
-                    {item.isPublic ? 'Pública' : 'Privada'}
-                  </span>
-
-                  {item.isArchived && (
-                    <span
-                      data-testid="archived-badge"
-                      className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                    >
-                      Archivado
-                    </span>
-                  )}
-
-                  <h4 className="text-base font-bold text-gray-900 dark:text-white">{item.title}</h4>
-                </div>
-
-                {item.body && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{item.body}</p>
-                )}
-
-                {item.link && (
-                  <a
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                  >
-                    🔗 {item.link}
-                  </a>
-                )}
-
-                {item.tags && item.tags.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    {item.tags.map((tag) => (
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       <span
-                        key={tag}
-                        className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${
+                          item.type === 'idea'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-secondary-fixed text-on-secondary-fixed border border-secondary-fixed-dim'
+                        }`}
                       >
-                        #{tag}
+                        {item.type === 'idea' ? 'Idea' : 'Referencia'}
                       </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </td>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  disabled={item.isArchived}
-                  onClick={() => {
-                    if (item.isArchived) return;
-                    setShowCreateIdea(false);
-                    setShowCreateRef(false);
-                    setEditingContext(item);
-                  }}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  disabled={item.isArchived || deletingId === item.id}
-                  onClick={() => !item.isArchived && handleDelete(item.id)}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {deletingId === item.id ? 'Borrando...' : 'Eliminar'}
-                </button>
-              </div>
-            </div>
-          ))}
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${
+                            item.isPublic
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : 'bg-surface-container text-on-surface-variant border border-surface-container-highest'
+                          }`}
+                        >
+                          {item.isPublic ? 'Pública' : 'Privada'}
+                        </span>
+                        {item.isArchived && (
+                          <span
+                            data-testid="archived-badge"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
+                          >
+                            Archivado
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-3.5 px-3">
+                      {item.tags && item.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-container-low text-on-surface-variant border border-surface-container-highest"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-outline text-[11px]">-</span>
+                      )}
+                    </td>
+
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={item.isArchived}
+                          onClick={() => {
+                            if (item.isArchived) return;
+                            setShowCreateIdea(false);
+                            setShowCreateRef(false);
+                            setEditingContext(item);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={item.isArchived || deletingId === item.id}
+                          onClick={() => !item.isArchived && handleDelete(item.id)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-error hover:bg-error-container/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {deletingId === item.id ? 'Borrando...' : 'Eliminar'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
 }
+

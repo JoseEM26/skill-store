@@ -11,6 +11,8 @@ describe('Catalog Queries', () => {
   let ownerId = '';
 
   let publicSkillId = '';
+  let privateSkillId = '';
+  let pausedSkillId = '';
   let archivedSkillId = '';
   let publicIdeaId = '';
   let privateIdeaId = '';
@@ -46,6 +48,8 @@ describe('Catalog Queries', () => {
         license: 'MIT',
         repositoryUrl: 'https://github.com/catalog-test-user/super-catalog-skill',
         isArchived: false,
+        isPublic: true,
+        isPaused: false,
         versions: {
           create: [
             {
@@ -64,7 +68,35 @@ describe('Catalog Queries', () => {
     });
     publicSkillId = pubSkill.id;
 
-    // 2. Create Archived Skill
+    // 2. Create Private Skill (CRITICAL SECURITY CHECK)
+    const privSkill = await prisma.skill.create({
+      data: {
+        slug: 'private-test-skill',
+        name: 'Private Test Skill',
+        description: 'Should not appear in public catalog or details without ownership',
+        ownerId: owner.id,
+        isPublic: false,
+        isPaused: false,
+        isArchived: false,
+      },
+    });
+    privateSkillId = privSkill.id;
+
+    // 3. Create Paused Skill
+    const pausedSkill = await prisma.skill.create({
+      data: {
+        slug: 'paused-test-skill',
+        name: 'Paused Test Skill',
+        description: 'Should not appear in public catalog while paused',
+        ownerId: owner.id,
+        isPublic: true,
+        isPaused: true,
+        isArchived: false,
+      },
+    });
+    pausedSkillId = pausedSkill.id;
+
+    // 4. Create Archived Skill
     const archSkill = await prisma.skill.create({
       data: {
         slug: 'archived-test-skill',
@@ -76,7 +108,7 @@ describe('Catalog Queries', () => {
     });
     archivedSkillId = archSkill.id;
 
-    // 3. Create Public Idea
+    // 5. Create Public Idea
     const pubIdea = await prisma.context.create({
       data: {
         type: 'idea',
@@ -90,7 +122,7 @@ describe('Catalog Queries', () => {
     });
     publicIdeaId = pubIdea.id;
 
-    // 4. Create Private Idea (CRITICAL SECURITY CHECK)
+    // 6. Create Private Idea (CRITICAL SECURITY CHECK)
     const privIdea = await prisma.context.create({
       data: {
         type: 'idea',
@@ -104,7 +136,7 @@ describe('Catalog Queries', () => {
     });
     privateIdeaId = privIdea.id;
 
-    // 5. Create Archived Context
+    // 7. Create Archived Context
     const archCtx = await prisma.context.create({
       data: {
         type: 'idea',
@@ -118,7 +150,7 @@ describe('Catalog Queries', () => {
     });
     archivedContextId = archCtx.id;
 
-    // 6. Create Public External Reference
+    // 8. Create Public External Reference
     const pubRef = await prisma.context.create({
       data: {
         type: 'external_reference',
@@ -142,7 +174,7 @@ describe('Catalog Queries', () => {
   });
 
   describe('getPublicCatalog', () => {
-    it('returns public skills and public contexts while strictly excluding private and archived items', async () => {
+    it('returns public skills and public contexts while strictly excluding private, paused, and archived items', async () => {
       const result = await getPublicCatalog();
 
       const itemIds = result.items.map((i) => i.id);
@@ -152,7 +184,9 @@ describe('Catalog Queries', () => {
       expect(itemIds).toContain(publicIdeaId);
       expect(itemIds).toContain(publicRefId);
 
-      // STRICT SECURITY: Must NOT contain private or archived items
+      // STRICT SECURITY: Must NOT contain private, paused, or archived items
+      expect(itemIds).not.toContain(privateSkillId);
+      expect(itemIds).not.toContain(pausedSkillId);
       expect(itemIds).not.toContain(privateIdeaId);
       expect(itemIds).not.toContain(archivedSkillId);
       expect(itemIds).not.toContain(archivedContextId);
@@ -168,6 +202,8 @@ describe('Catalog Queries', () => {
       const result = await getPublicCatalog({ type: 'skills' });
       expect(result.items.every((i) => i.kind === 'skill')).toBe(true);
       expect(result.items.some((i) => i.id === publicSkillId)).toBe(true);
+      expect(result.items.some((i) => i.id === privateSkillId)).toBe(false);
+      expect(result.items.some((i) => i.id === pausedSkillId)).toBe(false);
       expect(result.items.some((i) => i.id === publicRefId)).toBe(false);
     });
 
@@ -180,16 +216,28 @@ describe('Catalog Queries', () => {
   });
 
   describe('getSkillByOwnerAndSlug', () => {
-    it('returns full skill detail with owner and sorted version history', async () => {
+    it('returns full skill detail with owner and sorted version history for public skill', async () => {
       const skill = await getSkillByOwnerAndSlug(testOwnerUsername, 'super-catalog-skill');
 
       expect(skill).not.toBeNull();
       expect(skill?.name).toBe('Super Catalog Skill');
       expect(skill?.owner.username).toBe(testOwnerUsername);
+      expect(skill?.isPublic).toBe(true);
+      expect(skill?.isPaused).toBe(false);
       expect(skill?.latestVersion?.version).toBe('1.2.0');
       expect(skill?.versions).toHaveLength(2);
       expect(skill?.versions[0].version).toBe('1.2.0');
       expect(skill?.versions[1].version).toBe('1.0.0');
+    });
+
+    it('returns null for private skill (strict privacy guard)', async () => {
+      const result = await getSkillByOwnerAndSlug(testOwnerUsername, 'private-test-skill');
+      expect(result).toBeNull();
+    });
+
+    it('returns null for paused skill', async () => {
+      const result = await getSkillByOwnerAndSlug(testOwnerUsername, 'paused-test-skill');
+      expect(result).toBeNull();
     });
 
     it('returns null for nonexistent skill or wrong owner', async () => {

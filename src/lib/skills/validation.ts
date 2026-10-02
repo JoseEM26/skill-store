@@ -40,6 +40,7 @@ export interface ParsedSkill {
   frontmatter: SkillFrontmatter;
   body: string;
   filePath?: string;
+  files?: Record<string, string>;
 }
 
 export interface ValidationResult {
@@ -47,6 +48,34 @@ export interface ValidationResult {
   skill?: ParsedSkill;
   errors?: string[];
   filePath?: string;
+}
+
+/**
+ * Reads all files within a skill directory recursively.
+ * Returns a map of relative path (posix) -> file content.
+ */
+export function readSkillDirectoryFiles(dirPath: string): Record<string, string> {
+  const files: Record<string, string> = {};
+
+  function scan(currentDir: string) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        scan(fullPath);
+      } else if (entry.isFile()) {
+        const relPath = path.relative(dirPath, fullPath).split(path.sep).join('/');
+        files[relPath] = fs.readFileSync(fullPath, 'utf-8');
+      }
+    }
+  }
+
+  if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+    scan(dirPath);
+  }
+
+  return files;
 }
 
 /**
@@ -76,11 +105,21 @@ export function parseSkillMarkdown(content: string, filePath?: string): ParsedSk
   // Derive slug from frontmatter name
   const slug = result.data.name;
 
+  let files: Record<string, string> | undefined;
+  if (filePath && fs.existsSync(filePath)) {
+    const stat = fs.statSync(filePath);
+    const dir = stat.isDirectory() ? filePath : path.dirname(filePath);
+    if (fs.existsSync(dir)) {
+      files = readSkillDirectoryFiles(dir);
+    }
+  }
+
   return {
     slug,
     frontmatter: result.data,
     body: parsed.content.trim(),
     filePath,
+    files,
   };
 }
 
@@ -99,6 +138,8 @@ export function validateSkillFile(filePath: string): ValidationResult {
 
     const content = fs.readFileSync(filePath, 'utf-8');
     const skill = parseSkillMarkdown(content, filePath);
+    const skillDir = path.dirname(filePath);
+    skill.files = readSkillDirectoryFiles(skillDir);
     return {
       valid: true,
       skill,

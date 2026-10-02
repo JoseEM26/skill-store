@@ -53,18 +53,11 @@ export function SearchInput() {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="relative flex w-full items-center">
-        <input
-          type="text"
-          data-testid="search-input"
-          placeholder="Buscar por nombre, descripción, tag..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 pl-11 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-        />
-        <div className="pointer-events-none absolute left-3.5 flex items-center text-zinc-400">
+      {/* Wide Search Bar */}
+      <form onSubmit={handleSubmit} className="relative flex w-full items-center group">
+        <span className="pointer-events-none absolute left-4 flex items-center text-outline-variant group-focus-within:text-primary transition-colors">
           <svg
-            className="h-4 w-4"
+            className="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -76,17 +69,26 @@ export function SearchInput() {
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-        </div>
+        </span>
+        <input
+          type="text"
+          data-testid="search-input"
+          placeholder="Buscar por nombre, descripción, tag..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-xl border border-surface-container-highest bg-surface-container-lowest py-3.5 pl-12 pr-28 text-sm font-body text-on-surface shadow-xs transition placeholder:text-outline-variant focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 group-hover:border-outline-variant"
+        />
         <button
           type="submit"
           data-testid="search-submit"
-          className="absolute right-2 rounded-lg bg-zinc-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="absolute right-2.5 rounded-lg bg-primary hover:bg-primary-dim px-4 py-2 text-xs font-semibold text-on-primary shadow-xs transition-all active:scale-95"
         >
           {isPending ? 'Buscando...' : 'Buscar'}
         </button>
       </form>
 
-      <div className="flex flex-wrap items-center gap-1.5" data-testid="filter-tabs">
+      {/* Filter Bar with Pill Buttons */}
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1" data-testid="filter-tabs">
         {filterTabs.map((tab) => {
           const isActive = currentType === tab.key;
           return (
@@ -95,10 +97,10 @@ export function SearchInput() {
               type="button"
               data-testid={`filter-tab-${tab.key}`}
               onClick={() => handleTypeChange(tab.key)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
+                  ? 'bg-primary text-on-primary shadow-xs'
+                  : 'bg-surface-container-lowest border border-surface-container-highest text-on-surface-variant hover:text-on-surface hover:border-outline-variant hover:bg-surface-container-low'
               }`}
             >
               {tab.label}
@@ -109,3 +111,4 @@ export function SearchInput() {
     </div>
   );
 }
+

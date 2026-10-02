@@ -6,62 +6,76 @@ export function SkillCard({ skill }: { skill: CatalogSkillItem }) {
   const detailUrl = `/skills/${skill.owner.username}/${skill.slug}`;
 
   return (
-    <div
+    <article
       data-testid="skill-card"
-      className="flex flex-col justify-between rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+      className="bg-surface-container-lowest border border-surface-container-highest hover:border-primary-fixed-dim rounded-xl p-5 flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group"
     >
       <div>
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <span className="inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+        {/* Badges Row */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-secondary-fixed text-on-secondary-fixed">
               Skill
             </span>
             {skill.isArchived && (
               <span
                 data-testid="archived-badge"
-                className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
               >
                 Archivado
               </span>
             )}
-            <span className="ml-2 inline-block rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-surface-container text-on-surface-variant border border-surface-container-highest">
               {versionStr}
             </span>
           </div>
           {skill.license && (
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="px-2 py-0.5 rounded text-[11px] font-mono text-outline font-medium border border-surface-container-highest">
               {skill.license}
             </span>
           )}
         </div>
 
-        <h3 className="mt-3 text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          <Link href={detailUrl} className="hover:underline">
+        {/* Title & Author */}
+        <h3 className="font-mono text-sm font-bold text-on-surface group-hover:text-primary transition-colors tracking-tight mb-1">
+          <Link href={detailUrl}>
             {skill.name}
           </Link>
         </h3>
-
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          por <span className="font-medium text-zinc-700 dark:text-zinc-300">@{skill.owner.username}</span>
+        <p className="font-body text-xs text-outline mb-3">
+          por <span className="text-on-surface-variant font-medium">@{skill.owner.username}</span>
         </p>
 
-        <p className="mt-3 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-300">
+        {/* Description */}
+        <p className="font-body text-xs text-on-surface-variant line-clamp-2 leading-relaxed mb-4">
           {skill.description || 'Sin descripción disponible.'}
         </p>
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      {/* Card Footer */}
+      <div className="pt-3 border-t border-surface-container-high flex items-center justify-between text-xs text-on-surface-variant">
         <div className="flex items-center gap-3">
-          <span>📥 {skill.downloadsCount} descargas</span>
-          <span>⚡ {skill.installsCount} installs</span>
+          <div className="flex items-center gap-1" title="Descargas">
+            <svg className="w-3.5 h-3.5 text-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span className="font-mono text-[11px]">{skill.downloadsCount} descargas</span>
+          </div>
+          <div className="flex items-center gap-1" title="Instalaciones">
+            <svg className="w-3.5 h-3.5 text-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="font-mono text-[11px]">{skill.installsCount} installs</span>
+          </div>
         </div>
         <Link
           href={detailUrl}
-          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+          className="font-headline font-semibold text-primary hover:text-primary-dim inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform"
         >
-          Ver detalle →
+          Ver detalle <span className="text-sm">→</span>
         </Link>
       </div>
-    </div>
+    </article>
   );
 }
+

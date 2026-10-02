@@ -73,9 +73,25 @@ MCP o del panel — cualquier otro solo puede leer el catálogo público.
   explícitamente un token con scope de escritura sobre ese recurso — un token nunca da permisos
   de escritura sobre recursos que no son de su dueño, aunque tenga el scope `write`.
 - **Ideas privadas por defecto**: una idea/nota solo es visible para su dueño (en el panel y en su
-  propio MCP) salvo que el dueño la marque explícitamente como pública. Las skills y las
-  referencias de contexto (repos/herramientas externas) sí siguen siendo públicas en el catálogo
-  como hoy.
+  propio MCP) salvo que el dueño la marque explícitamente como pública. Las referencias de
+  contexto (repos/herramientas externas) siguen siendo siempre públicas en el catálogo.
+- **Visibilidad de skills (agregado post-MVP, ver Historial de cambios)**: por defecto una skill es
+  pública (comportamiento actual, no cambia para las ya publicadas), pero el dueño puede marcarla
+  como privada — visible y gestionable solo por él (panel y su propio MCP), oculta del catálogo
+  público y de `list_skills`/`search_skills` sin token. El control de visibilidad es el mismo sin
+  importar si la skill se publica/edita desde el panel web o desde la tool MCP `publish_skill` /
+  `update_skill` — ambos caminos respetan la misma regla, no hay uno más permisivo que el otro.
+- **Desactivar/pausar una skill sin borrarla (agregado post-MVP)**: el dueño puede pausar su propia
+  skill (oculta del catálogo activo y no instalable desde ahí mientras está pausada) y reactivarla
+  cuando quiera, sin perder versiones ni contadores — distinto del archivado automático por borrado
+  de cuenta (ver Casos borde), que no es reversible por el usuario.
+- **Advertencia al eliminar una skill (agregado post-MVP)**: antes de confirmar el borrado
+  definitivo (panel o MCP), mostrar un mensaje de advertencia cuyo texto depende de la visibilidad
+  de la skill:
+  - Si es/era **pública**: aclarar que se elimina del registro, pero quienes ya la descargaron o
+    instalaron conservan su copia local — el registro no puede revocar copias ya distribuidas.
+  - Si es/era **privada**: aclarar que se elimina del registro y, al no haber estado nunca en el
+    catálogo público, no hay copias de terceros que considerar.
 - Autenticación y autorización básicas desde el MVP (no pospuestas): GitHub OAuth + JWT de sesión
   para el panel admin, y tokens de MCP con permisos por scope (lectura / edición / eliminación) en
   vez de un único nivel de acceso. Sin token válido, el MCP solo permite lectura del catálogo
@@ -260,3 +276,35 @@ siguiente, y el diseño (Fase 1) va antes que cualquier pantalla real para no re
 - Riesgo principal (heredado del PRD anterior): la integración correcta entre GitHub, backend,
   CI/CD y MCP —ahora con autenticación de por medio— es más compleja que las pantallas de la web;
   necesita su propio spike de diseño antes de comprometer fechas.
+
+## Historial de cambios
+
+El PRD original se completó con los ítems #1-#14 del backlog. Cambios de alcance agregados
+después, una vez el MVP ya implementado:
+
+- **2026-10-01** — Visibilidad pública/privada por skill (antes solo existía para ideas),
+  desactivar/pausar una skill sin borrarla, y advertencia de borrado distinta según visibilidad
+  (ver Alcance). Afecta el modelo de datos (`Skill`) y las tools MCP `publish_skill`/`update_skill`
+  además del panel — **implementado** (ADR-0011, ítem #16 del backlog).
+- **2026-10-02** — CLI interactivo para listar/elegir/traer skills y agentes propios a cualquier
+  proyecto, usable desde cualquier IA o editor que hable MCP (Claude Code, Antigravity, OpenCode,
+  etc.), no solo Claude Code — ver ADR-0013. **Implementado** (ítem #17 del backlog). Como efecto
+  colateral, el contenido de cada skill ahora se guarda completo en Postgres al momento de la
+  ingesta, lo cual además destraba parcialmente el punto abierto de arriba sobre las 13 skills de
+  ejemplo: el flujo de "traer una skill" ya no depende de que el `repository` original siga siendo
+  accesible — aplica a partir de la próxima vez que cada skill se re-publique (las versiones ya
+  ingeridas antes de este cambio no tienen contenido retroactivo).
+- **2026-10-01** — Separación entre el código fuente de la plataforma y las skills publicadas por
+  la comunidad (ver ADR-0012 en TECH-DESIGN.md): el repositorio del registry (`JoseEM26/skill-store`)
+  pasó a **privado**, para proteger el código del producto en sí. El campo `repository` de cada
+  skill publicada por la comunidad debe apuntar al repo propio de su dueño, nunca al repo de la
+  plataforma — las 13 skills de ejemplo usadas para poblar el catálogo durante el desarrollo
+  apuntaban (por comodidad, no por diseño) al propio repo de la plataforma; falta decidir qué hacer
+  con esas skills de ejemplo cuando haya contenido real de la comunidad (dejarlas como demo interna,
+  o reemplazarlas/actualizar su `repository`).
+- **2026-10-01** — Abierto, sin decidir todavía: **modelo de licencia por skill**. Hoy las 13 skills
+  de ejemplo declaran `license: MIT` (reuso libre, estilo npm/GitHub). Falta decidir si ese sigue
+  siendo el default para la comunidad, o si cada dueño puede elegir una licencia más restrictiva
+  (ej. "All rights reserved") al publicar — importante: ninguna licencia impide que alguien que
+  instala una skill pública *tenga* el código (eso es inherente a "instalar"); la licencia solo
+  define qué puede hacer legalmente con él después (redistribuir, modificar, vender, etc.).

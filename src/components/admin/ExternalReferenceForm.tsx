@@ -58,19 +58,24 @@ export function ExternalReferenceForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-        {initialData ? 'Editar Referencia Externa' : 'Nueva Referencia Externa'}
-      </h3>
+    <form onSubmit={handleSubmit} className="space-y-4 bg-surface-container-lowest p-6 rounded-xl border border-surface-container-highest shadow-sm">
+      <div className="flex items-center gap-2 border-b border-surface-container pb-3">
+        <div className="w-7 h-7 rounded-lg bg-surface-container-high text-primary flex items-center justify-center text-sm font-bold">
+          🔗
+        </div>
+        <h3 className="font-headline text-base font-bold text-on-surface">
+          {initialData ? 'Editar Referencia Externa' : 'Nueva Referencia Externa'}
+        </h3>
+      </div>
 
       {error && (
-        <div className="p-3 text-sm bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded">
+        <div className="p-3 text-xs bg-error-container/20 border border-error/20 text-error rounded-lg">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="ref-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="ref-title" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Nombre de la herramienta / repositorio *
         </label>
         <input
@@ -81,12 +86,12 @@ export function ExternalReferenceForm({
           required
           maxLength={150}
           placeholder="Ej: superpowers, context7, herdr"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all"
         />
       </div>
 
       <div>
-        <label htmlFor="ref-link" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="ref-link" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Enlace (URL) *
         </label>
         <input
@@ -96,12 +101,12 @@ export function ExternalReferenceForm({
           onChange={(e) => setLink(e.target.value)}
           required
           placeholder="https://github.com/..."
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-mono"
         />
       </div>
 
       <div>
-        <label htmlFor="ref-body" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="ref-body" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Descripción / Uso
         </label>
         <textarea
@@ -110,12 +115,12 @@ export function ExternalReferenceForm({
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder="¿Para qué sirve esta herramienta y cómo se usa?"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-body"
         />
       </div>
 
       <div>
-        <label htmlFor="ref-tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="ref-tags" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Etiquetas (separadas por comas)
         </label>
         <input
@@ -124,21 +129,24 @@ export function ExternalReferenceForm({
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="tools, context, libraries"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-mono"
         />
       </div>
 
-      <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2.5 rounded border border-gray-100 dark:border-gray-700">
-        ℹ️ Las referencias externas son <span className="font-semibold text-emerald-600 dark:text-emerald-400">siempre públicas</span> en el catálogo para el ecosistema.
+      <div className="text-xs text-on-surface-variant bg-surface-container-low p-2.5 rounded-lg border border-surface-container-highest flex items-center gap-1.5">
+        <span className="text-primary font-bold">ℹ️</span>
+        <span>
+          Las referencias externas son <span className="font-semibold text-emerald-700">siempre públicas</span> en el catálogo para el ecosistema.
+        </span>
       </div>
 
-      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-end space-x-2 pt-4 border-t border-surface-container">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+            className="px-3.5 py-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -146,7 +154,7 @@ export function ExternalReferenceForm({
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm disabled:opacity-50"
+          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-dim text-on-primary shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {loading ? 'Guardando...' : initialData ? 'Actualizar Referencia' : 'Crear Referencia'}
         </button>
@@ -154,3 +162,4 @@ export function ExternalReferenceForm({
     </form>
   );
 }
+

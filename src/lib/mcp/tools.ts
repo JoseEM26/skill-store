@@ -27,16 +27,19 @@ export {
 export const listSkillsInputSchema = z.object({
   limit: z.number().int().positive().max(100).optional().default(50),
   query: z.string().optional(),
+  token: z.string().optional(),
 });
 
 export const searchSkillsInputSchema = z.object({
   query: z.string().trim().min(1, 'El término de búsqueda es requerido'),
   limit: z.number().int().positive().max(100).optional().default(20),
+  token: z.string().optional(),
 });
 
 export const getSkillInputSchema = z.object({
   owner: z.string().trim().min(1, 'El owner es requerido'),
   slug: z.string().trim().min(1, 'El slug es requerido'),
+  token: z.string().optional(),
 });
 
 export const installSkillInputSchema = z.object({
@@ -48,6 +51,7 @@ export const getVersionInputSchema = z.object({
   owner: z.string().trim().min(1, 'El owner es requerido'),
   slug: z.string().trim().min(1, 'El slug es requerido'),
   version: z.string().trim().min(1, 'La versión es requerida'),
+  token: z.string().optional(),
 });
 
 export const checkUpdatesInputSchema = z.object({
@@ -80,24 +84,52 @@ export function extractBearerToken(authHeader?: string | null): string | null {
 // --- MCP TOOL IMPLEMENTATIONS ---
 
 /**
- * 1. list_skills: Lists public active skills with their latest version.
+ * 1. list_skills: Lists public active skills with their latest version, plus owner's private/paused skills if authenticated.
  */
-export async function handleListSkills(input: z.input<typeof listSkillsInputSchema> = {}) {
+export async function handleListSkills(
+  input: z.input<typeof listSkillsInputSchema> = {},
+  bearerToken?: string | null
+) {
   const validated = listSkillsInputSchema.parse(input);
+  const rawToken = validated.token || bearerToken;
+
+  let ownerId: string | null = null;
+  if (rawToken) {
+    const authResult = await validateAccessToken(rawToken, 'read');
+    if (authResult.valid) {
+      ownerId = authResult.user.id;
+    }
+  }
+
+  const where: Prisma.SkillWhereInput = {
+    isArchived: false,
+    ...(ownerId
+      ? {
+          OR: [
+            { isPublic: true, isPaused: false },
+            { ownerId },
+          ],
+        }
+      : {
+          isPublic: true,
+          isPaused: false,
+        }),
+  };
+
+  if (validated.query) {
+    where.AND = [
+      {
+        OR: [
+          { name: { contains: validated.query, mode: 'insensitive' } },
+          { slug: { contains: validated.query, mode: 'insensitive' } },
+          { description: { contains: validated.query, mode: 'insensitive' } },
+        ],
+      },
+    ];
+  }
 
   const skills = await prisma.skill.findMany({
-    where: {
-      isArchived: false,
-      ...(validated.query
-        ? {
-            OR: [
-              { name: { contains: validated.query, mode: 'insensitive' } },
-              { slug: { contains: validated.query, mode: 'insensitive' } },
-              { description: { contains: validated.query, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
+    where,
     take: validated.limit,
     include: {
       owner: { select: { username: true, avatarUrl: true } },
@@ -127,6 +159,8 @@ export async function handleListSkills(input: z.input<typeof listSkillsInputSche
       description: s.description,
       license: s.license,
       repositoryUrl: s.repositoryUrl,
+      isPublic: s.isPublic,
+      isPaused: s.isPaused,
       owner: s.owner.username,
       latestVersion,
       downloadsCount: s.downloadsCount,
@@ -139,21 +173,50 @@ export async function handleListSkills(input: z.input<typeof listSkillsInputSche
 /**
  * 2. search_skills: Searches skills across name, description, slug, and versions.
  */
-export async function handleSearchSkills(input: z.input<typeof searchSkillsInputSchema>) {
+export async function handleSearchSkills(
+  input: z.input<typeof searchSkillsInputSchema>,
+  bearerToken?: string | null
+) {
   const validated = searchSkillsInputSchema.parse(input);
-  return await handleListSkills({ limit: validated.limit, query: validated.query });
+  return await handleListSkills(
+    { limit: validated.limit, query: validated.query, token: validated.token },
+    bearerToken
+  );
 }
 
 /**
  * 3. get_skill: Fetches full detail of a skill including complete version history.
  */
-export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>) {
+export async function handleGetSkill(
+  input: z.input<typeof getSkillInputSchema>,
+  bearerToken?: string | null
+) {
   const validated = getSkillInputSchema.parse(input);
+  const rawToken = validated.token || bearerToken;
+
+  let ownerId: string | null = null;
+  if (rawToken) {
+    const authResult = await validateAccessToken(rawToken, 'read');
+    if (authResult.valid) {
+      ownerId = authResult.user.id;
+    }
+  }
 
   const skill = await prisma.skill.findFirst({
     where: {
       slug: validated.slug,
       owner: { username: validated.owner },
+      ...(ownerId
+        ? {
+            OR: [
+              { isPublic: true, isPaused: false },
+              { ownerId },
+            ],
+          }
+        : {
+            isPublic: true,
+            isPaused: false,
+          }),
     },
     include: {
       owner: { select: { username: true, avatarUrl: true } },
@@ -181,6 +244,8 @@ export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>)
     repositoryUrl: skill.repositoryUrl,
     owner: skill.owner.username,
     isArchived: skill.isArchived,
+    isPublic: skill.isPublic,
+    isPaused: skill.isPaused,
     installCommand: `npx skills add ${skill.owner.username}/${skill.slug}`,
     downloadsCount: skill.downloadsCount,
     installsCount: skill.installsCount,
@@ -189,6 +254,7 @@ export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>)
           version: latestVersion.version,
           changelog: latestVersion.changelog,
           gitTag: latestVersion.gitTag,
+          files: latestVersion.files ?? null,
           publishedAt: latestVersion.publishedAt,
         }
       : null,
@@ -196,21 +262,45 @@ export async function handleGetSkill(input: z.input<typeof getSkillInputSchema>)
       version: v.version,
       changelog: v.changelog,
       gitTag: v.gitTag,
+      files: v.files ?? null,
       publishedAt: v.publishedAt,
     })),
   };
 }
 
 /**
- * 4. get_version: Fetches specific version details, changelog, and gitTag.
+ * 4. get_version: Fetches specific version details, changelog, gitTag, and files.
  */
-export async function handleGetVersion(input: z.input<typeof getVersionInputSchema>) {
+export async function handleGetVersion(
+  input: z.input<typeof getVersionInputSchema>,
+  bearerToken?: string | null
+) {
   const validated = getVersionInputSchema.parse(input);
+  const rawToken = validated.token || bearerToken;
+
+  let ownerId: string | null = null;
+  if (rawToken) {
+    const authResult = await validateAccessToken(rawToken, 'read');
+    if (authResult.valid) {
+      ownerId = authResult.user.id;
+    }
+  }
 
   const skill = await prisma.skill.findFirst({
     where: {
       slug: validated.slug,
       owner: { username: validated.owner },
+      ...(ownerId
+        ? {
+            OR: [
+              { isPublic: true, isPaused: false },
+              { ownerId },
+            ],
+          }
+        : {
+            isPublic: true,
+            isPaused: false,
+          }),
     },
     include: {
       owner: { select: { username: true } },
@@ -235,6 +325,7 @@ export async function handleGetVersion(input: z.input<typeof getVersionInputSche
     version: ver.version,
     changelog: ver.changelog,
     gitTag: ver.gitTag,
+    files: ver.files ?? null,
     publishedAt: ver.publishedAt,
   };
 }
@@ -435,6 +526,8 @@ export async function handleGetMySetup(
       description: s.description,
       license: s.license,
       repositoryUrl: s.repositoryUrl,
+      isPublic: s.isPublic,
+      isPaused: s.isPaused,
       downloadsCount: s.downloadsCount,
       installsCount: s.installsCount,
       latestVersion: verObj
@@ -631,6 +724,8 @@ export const handlePublishSkill = withAuthenticatedTool(
           description: data.description || null,
           license: data.license || 'MIT',
           repositoryUrl: data.repositoryUrl || null,
+          ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
+          ...(data.isPaused !== undefined ? { isPaused: data.isPaused } : {}),
         },
       });
 
@@ -641,6 +736,8 @@ export const handlePublishSkill = withAuthenticatedTool(
         description: updated.description,
         license: updated.license,
         repositoryUrl: updated.repositoryUrl,
+        isPublic: updated.isPublic,
+        isPaused: updated.isPaused,
         owner: ctx.user.username,
         updatedAt: updated.updatedAt,
       };
@@ -654,6 +751,8 @@ export const handlePublishSkill = withAuthenticatedTool(
           description: data.description || null,
           license: data.license || 'MIT',
           repositoryUrl: data.repositoryUrl || null,
+          isPublic: data.isPublic ?? true,
+          isPaused: data.isPaused ?? false,
           ownerId: ctx.ownerId,
         },
       });
@@ -665,6 +764,8 @@ export const handlePublishSkill = withAuthenticatedTool(
         description: created.description,
         license: created.license,
         repositoryUrl: created.repositoryUrl,
+        isPublic: created.isPublic,
+        isPaused: created.isPaused,
         owner: ctx.user.username,
         downloadsCount: 0,
         installsCount: 0,
@@ -678,6 +779,8 @@ export const handlePublishSkill = withAuthenticatedTool(
     }
   }
 );
+
+export const handleUpdateSkill = handlePublishSkill;
 
 /**
  * 13. delete_skill: Deletes skill owned by token holder.

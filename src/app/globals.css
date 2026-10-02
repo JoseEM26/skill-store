@@ -1,26 +1,84 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-primary: #5b5a8b;
+  --color-on-primary: #fbf7ff;
+  --color-primary-container: #bbb9f1;
+  --color-on-primary-container: #363564;
+  --color-primary-dim: #4f4e7e;
+  --color-primary-fixed: #bbb9f1;
+  --color-primary-fixed-dim: #adabe2;
+  --color-on-primary-fixed: #21204d;
+  --color-on-primary-fixed-variant: #3f3e6e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-secondary: #5e5d72;
+  --color-on-secondary: #fbf7ff;
+  --color-secondary-container: #e3e0f9;
+  --color-on-secondary-container: #515064;
+  --color-secondary-dim: #525166;
+  --color-secondary-fixed: #e3e0f9;
+  --color-secondary-fixed-dim: #d5d2eb;
+  --color-on-secondary-fixed: #3e3d51;
+  --color-on-secondary-fixed-variant: #5b596e;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-tertiary: #755478;
+  --color-on-tertiary: #fff7fa;
+  --color-tertiary-container: #fdd2fd;
+  --color-on-tertiary-container: #654568;
+  --color-tertiary-dim: #68486b;
+  --color-tertiary-fixed: #fdd2fd;
+  --color-tertiary-fixed-dim: #eec4ef;
+  --color-on-tertiary-fixed: #513254;
+  --color-on-tertiary-fixed-variant: #704e72;
+
+  --color-error: #a8364b;
+  --color-on-error: #fff7f7;
+  --color-error-container: #f97386;
+  --color-on-error-container: #6e0523;
+  --color-error-dim: #6b0221;
+
+  --color-background: #fcf8fe;
+  --color-on-background: #32313b;
+
+  --color-surface: #fcf8fe;
+  --color-on-surface: #32313b;
+  --color-surface-variant: #e4e1ed;
+  --color-on-surface-variant: #5f5e68;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f2fa;
+  --color-surface-container: #f0ecf6;
+  --color-surface-container-high: #eae6f1;
+  --color-surface-container-highest: #e4e1ed;
+  --color-surface-bright: #fcf8fe;
+  --color-surface-dim: #dcd8e4;
+  --color-surface-tint: #5b5a8b;
+
+  --color-inverse-surface: #0e0e12;
+  --color-inverse-on-surface: #9e9ca2;
+  --color-inverse-primary: #bbb9f1;
+
+  --color-outline: #7b7984;
+  --color-outline-variant: #b3b0bc;
+
+  --font-headline: Geist, system-ui, -apple-system, sans-serif;
+  --font-body: Geist, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font-label: "Public Sans", system-ui, sans-serif;
+
+  --radius-lg: 0.5rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
 }
+
+.tech-grid-bg {
+  background-size: 28px 28px;
+  background-image: 
+    linear-gradient(to right, rgba(91, 90, 139, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(91, 90, 139, 0.05) 1px, transparent 1px);
+}
+

@@ -24,6 +24,8 @@ describe('Skills Admin UI Components', () => {
       downloadsCount: 120,
       installsCount: 45,
       isArchived: false,
+      isPublic: true,
+      isPaused: false,
       ownerId: 'user-1',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -34,6 +36,7 @@ describe('Skills Admin UI Components', () => {
           version: '1.0.0',
           changelog: 'Initial release',
           gitTag: 'v1.0.0',
+          files: null,
           publishedAt: new Date(),
         },
       ],
@@ -138,21 +141,168 @@ describe('Skills Admin UI Components', () => {
     });
   });
 
-  it('calls deleteSkillAction on skill deletion after confirm', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('toggles visibility from public to private', async () => {
+    vi.mocked(actions.updateSkillAction).mockResolvedValue({ success: true });
+
+    render(<SkillList initialSkills={mockSkills} username="aybardev" />);
+
+    expect(screen.getByTestId('visibility-badge').textContent).toBe('Pública');
+    const toggleBtn = screen.getByTestId('toggle-visibility-skill-1');
+    expect(toggleBtn.textContent).toBe('Hacer privada');
+
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(actions.updateSkillAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        isPublic: false,
+      });
+    });
+  });
+
+  it('toggles visibility from private to public', async () => {
+    vi.mocked(actions.updateSkillAction).mockResolvedValue({ success: true });
+
+    const privateSkills: SkillWithVersions[] = [
+      {
+        ...mockSkills[0],
+        isPublic: false,
+      },
+    ];
+
+    render(<SkillList initialSkills={privateSkills} username="aybardev" />);
+
+    expect(screen.getByTestId('visibility-badge').textContent).toBe('Privada');
+    const toggleBtn = screen.getByTestId('toggle-visibility-skill-1');
+    expect(toggleBtn.textContent).toBe('Hacer pública');
+
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(actions.updateSkillAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        isPublic: true,
+      });
+    });
+  });
+
+  it('toggles paused state from unpaused to paused', async () => {
+    vi.mocked(actions.updateSkillAction).mockResolvedValue({ success: true });
+
+    render(<SkillList initialSkills={mockSkills} username="aybardev" />);
+
+    expect(screen.queryByTestId('paused-badge')).toBeNull();
+    const toggleBtn = screen.getByTestId('toggle-paused-skill-1');
+    expect(toggleBtn.textContent).toBe('Pausar');
+
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(actions.updateSkillAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        isPaused: true,
+      });
+    });
+  });
+
+  it('toggles paused state from paused to unpaused', async () => {
+    vi.mocked(actions.updateSkillAction).mockResolvedValue({ success: true });
+
+    const pausedSkills: SkillWithVersions[] = [
+      {
+        ...mockSkills[0],
+        isPaused: true,
+      },
+    ];
+
+    render(<SkillList initialSkills={pausedSkills} username="aybardev" />);
+
+    expect(screen.getByTestId('paused-badge').textContent).toBe('Pausada');
+    const toggleBtn = screen.getByTestId('toggle-paused-skill-1');
+    expect(toggleBtn.textContent).toBe('Reanudar');
+
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(actions.updateSkillAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        isPaused: false,
+      });
+    });
+  });
+
+  it('opens delete modal with public warning and confirms deletion for a public skill', async () => {
     vi.mocked(actions.deleteSkillAction).mockResolvedValue({ success: true });
 
     render(<SkillList initialSkills={mockSkills} username="aybardev" />);
 
-    const deleteButtons = screen.getAllByText('Eliminar');
-    fireEvent.click(deleteButtons[0]);
+    // Click delete button
+    fireEvent.click(screen.getByTestId('delete-btn-skill-1'));
+
+    // Check modal opens and shows public warning
+    expect(screen.getByRole('dialog')).toBeDefined();
+    const publicWarning = screen.getByTestId('delete-public-warning');
+    expect(publicWarning.textContent).toContain('Esta skill es pública');
+    expect(publicWarning.textContent).toContain(
+      'quienes ya la descargaron o instalaron conservan su copia local'
+    );
+    expect(publicWarning.textContent).toContain(
+      'el registro no puede revocar copias ya distribuidas'
+    );
+    expect(screen.queryByTestId('delete-private-warning')).toBeNull();
+
+    // Confirm deletion
+    fireEvent.click(screen.getByTestId('confirm-delete-btn'));
 
     await waitFor(() => {
       expect(actions.deleteSkillAction).toHaveBeenCalledWith('skill-1');
     });
   });
 
-  it('renders "Archivado" badge and disables Edit/Delete buttons on archived skills', () => {
+  it('opens delete modal with private warning and confirms deletion for a private skill', async () => {
+    vi.mocked(actions.deleteSkillAction).mockResolvedValue({ success: true });
+
+    const privateSkills: SkillWithVersions[] = [
+      {
+        ...mockSkills[0],
+        id: 'skill-priv-1',
+        isPublic: false,
+      },
+    ];
+
+    render(<SkillList initialSkills={privateSkills} username="aybardev" />);
+
+    fireEvent.click(screen.getByTestId('delete-btn-skill-priv-1'));
+
+    expect(screen.getByRole('dialog')).toBeDefined();
+    const privateWarning = screen.getByTestId('delete-private-warning');
+    expect(privateWarning.textContent).toContain('Esta skill es privada');
+    expect(privateWarning.textContent).toContain(
+      'al no haber estado nunca en el catálogo público, no hay copias de terceros que considerar'
+    );
+    expect(privateWarning.textContent).not.toContain('descargaron');
+    expect(screen.queryByTestId('delete-public-warning')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('confirm-delete-btn'));
+
+    await waitFor(() => {
+      expect(actions.deleteSkillAction).toHaveBeenCalledWith('skill-priv-1');
+    });
+  });
+
+  it('cancels deletion when clicking Cancelar in delete modal', async () => {
+    render(<SkillList initialSkills={mockSkills} username="aybardev" />);
+
+    fireEvent.click(screen.getByTestId('delete-btn-skill-1'));
+    expect(screen.getByRole('dialog')).toBeDefined();
+
+    fireEvent.click(screen.getByText('Cancelar'));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(actions.deleteSkillAction).not.toHaveBeenCalled();
+  });
+
+  it('renders "Archivado" badge and disables all action buttons on archived skills', () => {
     const archivedSkills: SkillWithVersions[] = [
       {
         ...mockSkills[0],
@@ -166,9 +316,13 @@ describe('Skills Admin UI Components', () => {
     expect(screen.getByTestId('archived-badge').textContent).toBe('Archivado');
 
     const editBtn = screen.getByText('Editar') as HTMLButtonElement;
-    const deleteBtn = screen.getByText('Eliminar') as HTMLButtonElement;
+    const deleteBtn = screen.getByTestId('delete-btn-archived-skill-1') as HTMLButtonElement;
+    const toggleVisBtn = screen.getByTestId('toggle-visibility-archived-skill-1') as HTMLButtonElement;
+    const togglePauseBtn = screen.getByTestId('toggle-paused-archived-skill-1') as HTMLButtonElement;
 
     expect(editBtn.disabled).toBe(true);
     expect(deleteBtn.disabled).toBe(true);
+    expect(toggleVisBtn.disabled).toBe(true);
+    expect(togglePauseBtn.disabled).toBe(true);
   });
 });

@@ -34,6 +34,8 @@ model Skill {
   downloadsCount Int            @default(0)
   installsCount  Int            @default(0)
   isArchived     Boolean        @default(false)
+  isPublic       Boolean        @default(true)
+  isPaused       Boolean        @default(false)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   versions       SkillVersion[]
@@ -48,6 +50,7 @@ model SkillVersion {
   version     String
   changelog   String?
   gitTag      String?
+  files       Json?
   publishedAt DateTime @default(now())
 
   @@unique([skillId, version])

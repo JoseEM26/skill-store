@@ -3,7 +3,7 @@
 | # | Item | Alcance | Depende de | Contexto extra requerido |
 |---|---|---|---|---|
 | 1 | Esqueleto del proyecto | Next.js + TS + Tailwind inicializado, corriendo localmente ("hola mundo" vía `pnpm dev`) | — | — |
-| 2 | Diseño visual (Stitch) | Mockups de catálogo, detalle de skill, login y panel admin | — | — |
+| 2 | Diseño visual (Stitch) | Mockups de catálogo, detalle de skill, login y panel admin — **hecho** ✓ (proyecto Stitch `projects/5754345900399382587`) | — | — |
 | 3 | Modelo de datos + Prisma | Schema User/Skill/SkillVersion/Context/AccessToken (ADR-0003) + migraciones contra Postgres local en Docker — **hecho** ✓ | #1 | — |
 | 4 | GitHub Actions: validación + ingesta al backend | Lint, validar frontmatter/YAML de `SKILL.md`, semver, tag/release, escribir Skill+SkillVersion en Postgres | #3 | — |
 | 5 | Catálogo público de solo lectura | Listar/buscar/detalle/changelog leyendo desde Postgres (poblado por #4) | #2, #4 | — |
@@ -17,6 +17,8 @@
 | 13 | Archivado de recursos al borrar/revocar cuenta | Skills/contextos públicos se archivan (no se borran); ideas privadas sí se eliminan | #6, #7 | — |
 | 14 | Rate limiting básico por IP | Contador de ventana deslizante en Postgres (ADR-0007) + purga periódica de la tabla | #4 | — |
 | 15 | Conectar Vercel + Neon (deploy real) | Migrar de Postgres local en Docker a Neon, desplegar el monolito en Vercel, verificar el flujo completo contra infra real | #1-#14 | — |
+| 16 | Visibilidad y pausado de skills (ADR-0011) | `isPublic`/`isPaused` en `Skill`, mismo control desde panel y MCP, advertencia de borrado según visibilidad — **hecho** ✓ | #3, #7, #9, #10 | ADR-0011 (diseño ya cerrado) |
+| 17 | CLI interactivo multi-agente (ADR-0013) | `files Json` en `SkillVersion` + ingesta guarda contenido completo, `get_skill`/`get_version` lo exponen respetando visibilidad, nuevo `bin/skills-cli.ts` (login/whoami/list/search/pull) como cliente MCP más — **hecho** ✓ | #3, #9, #16 | ADR-0013 (diseño ya cerrado) |
 
 **Contexto de dominio:** ninguno de estos ítems necesita reglas de negocio especializadas — es un registro de skills genérico, no un dominio regulado; todo lo necesario ya está en el PRD/TDD.
 

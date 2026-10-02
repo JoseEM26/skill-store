@@ -59,6 +59,8 @@ export async function createUserSkill(ownerId: string, input: CreateSkillInput):
         description: data.description || null,
         license: data.license || 'MIT',
         repositoryUrl: data.repositoryUrl || null,
+        isPublic: data.isPublic,
+        isPaused: data.isPaused,
         ownerId,
       },
     });
@@ -84,14 +86,17 @@ export async function updateUserSkill(ownerId: string, input: UpdateSkillInput):
     throw new AuthorizationError('No se pueden modificar recursos archivados');
   }
 
+  const updateData: Prisma.SkillUpdateInput = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description || null;
+  if (data.license !== undefined) updateData.license = data.license || 'MIT';
+  if (data.repositoryUrl !== undefined) updateData.repositoryUrl = data.repositoryUrl || null;
+  if (data.isPublic !== undefined) updateData.isPublic = data.isPublic;
+  if (data.isPaused !== undefined) updateData.isPaused = data.isPaused;
+
   return await prisma.skill.update({
     where: { id: data.id },
-    data: {
-      name: data.name,
-      description: data.description || null,
-      license: data.license || 'MIT',
-      repositoryUrl: data.repositoryUrl || null,
-    },
+    data: updateData,
   });
 }
 

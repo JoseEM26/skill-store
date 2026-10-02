@@ -74,6 +74,8 @@ export const publishSkillMcpSchema = z.object({
     .optional()
     .transform((val) => (val === '' ? undefined : val))
     .pipe(z.string().url('Debe ser una URL válida (ej. https://github.com/...)').optional()),
+  isPublic: z.boolean().optional(),
+  isPaused: z.boolean().optional(),
 });
 
 export const deleteSkillMcpBaseSchema = z.object({

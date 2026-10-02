@@ -30,14 +30,19 @@ compartida por todos: catálogo, tokens, y el contador de rate limiting.
 | [ADR-0008](adrs/0008-estrategia-despliegue.md) | Estrategia de despliegue: migraciones + previews con Neon branching | Aceptado |
 | [ADR-0009](adrs/0009-contadores-sin-auth.md) | Contadores de popularidad: excepción pública a la regla de escritura | Aceptado |
 | [ADR-0010](adrs/0010-hash-rapido-tokens.md) | Hash rápido (SHA-256) para tokens, en vez de bcrypt/argon2 | Aceptado |
+| [ADR-0011](adrs/0011-visibilidad-y-pausado-de-skills.md) | Visibilidad pública/privada y pausado de skills | Aceptado |
+| [ADR-0012](adrs/0012-repo-plataforma-privado.md) | Repositorio de la plataforma privado, separado del código de cada skill | Aceptado |
+| [ADR-0013](adrs/0013-cli-instalacion-interactiva.md) | CLI interactivo multi-agente para listar/traer skills, contenido completo guardado en Postgres | Aceptado |
 
 ## Modelo de datos
 
 - **User** — `id`, `githubId`, `username`, `avatarUrl`, `createdAt`.
 - **Skill** — `id`, `slug` (único por dueño), `name`, `description`, `ownerId → User`, `license`,
-  `repositoryUrl`, `downloadsCount`, `installsCount`, `isArchived`, `createdAt`, `updatedAt`.
+  `repositoryUrl`, `downloadsCount`, `installsCount`, `isArchived`, `isPublic`, `isPaused`,
+  `createdAt`, `updatedAt` (ADR-0011, implementado — ítem #16).
 - **SkillVersion** — `id`, `skillId → Skill`, `version` (semver), `changelog`, `gitTag`,
-  `publishedAt`.
+  `publishedAt`, `files Json?` (mapa ruta relativa → contenido completo del archivo; ADR-0013,
+  implementado — ítem #17).
 - **Context** — tabla única con discriminador `type` (`idea` | `external_reference`): `id`, `type`,
   `title`, `body`, `link` (nullable), `tags[]`, `ownerId → User`, `isPublic` (default `false` para
   `idea`), `isArchived`, `createdAt`, `updatedAt`. `CHECK` en Postgres: `external_reference` nunca

@@ -130,9 +130,14 @@ describe('Admin Server Actions (Security & Authorization)', () => {
     const updateRes = await updateSkillAction({
       id: skill.id,
       name: 'Skill Alpha Renamed',
+      isPublic: false,
+      isPaused: true,
     });
 
     expect(updateRes.success).toBe(true);
+    const updatedSkill = updateRes.data as { isPublic: boolean; isPaused: boolean };
+    expect(updatedSkill.isPublic).toBe(false);
+    expect(updatedSkill.isPaused).toBe(true);
   });
 
   it('prevents user A from modifying or deleting contexts belonging to user B', async () => {

@@ -29,6 +29,7 @@ const AVAILABLE_TOOLS = [
       properties: {
         limit: { type: 'number', description: 'Cantidad máxima de resultados (default 50)' },
         query: { type: 'string', description: 'Filtro opcional de texto' },
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
       },
     },
   },
@@ -40,6 +41,7 @@ const AVAILABLE_TOOLS = [
       properties: {
         query: { type: 'string', description: 'Término de búsqueda requerido' },
         limit: { type: 'number', description: 'Cantidad máxima de resultados (default 20)' },
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
       },
       required: ['query'],
     },
@@ -52,19 +54,21 @@ const AVAILABLE_TOOLS = [
       properties: {
         owner: { type: 'string', description: 'Nombre de usuario del propietario' },
         slug: { type: 'string', description: 'Identificador slug de la skill' },
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
       },
       required: ['owner', 'slug'],
     },
   },
   {
     name: 'get_version',
-    description: 'Obtiene el detalle de una versión específica de una skill (changelog, gitTag).',
+    description: 'Obtiene el detalle de una versión específica de una skill (changelog, gitTag, files).',
     inputSchema: {
       type: 'object',
       properties: {
         owner: { type: 'string', description: 'Nombre de usuario del propietario' },
         slug: { type: 'string', description: 'Identificador slug de la skill' },
         version: { type: 'string', description: 'Versión SemVer exacta (ej: 1.0.0)' },
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
       },
       required: ['owner', 'slug', 'version'],
     },
@@ -173,6 +177,8 @@ const AVAILABLE_TOOLS = [
         description: { type: 'string', description: 'Descripción opcional' },
         license: { type: 'string', description: 'Licencia (ej: MIT)' },
         repositoryUrl: { type: 'string', description: 'URL del repositorio de código' },
+        isPublic: { type: 'boolean', description: 'Visibilidad de la skill (default true)' },
+        isPaused: { type: 'boolean', description: 'Pausado temporal de la skill (default false)' },
         token: { type: 'string', description: 'Token de acceso personal opcional si se envía Bearer header' },
       },
       required: ['slug', 'name'],
@@ -303,16 +309,19 @@ export async function POST(req: NextRequest) {
 
       switch (toolName) {
         case 'list_skills':
-          data = await handleListSkills(toolArgs);
+          data = await handleListSkills(toolArgs, bearerToken);
           break;
         case 'search_skills':
-          data = await handleSearchSkills(toolArgs as { query: string; limit?: number });
+          data = await handleSearchSkills(toolArgs as { query: string; limit?: number }, bearerToken);
           break;
         case 'get_skill':
-          data = await handleGetSkill(toolArgs as { owner: string; slug: string });
+          data = await handleGetSkill(toolArgs as { owner: string; slug: string }, bearerToken);
           break;
         case 'get_version':
-          data = await handleGetVersion(toolArgs as { owner: string; slug: string; version: string });
+          data = await handleGetVersion(
+            toolArgs as { owner: string; slug: string; version: string; token?: string },
+            bearerToken
+          );
           break;
         case 'check_updates':
           data = await handleCheckUpdates(toolArgs as { owner: string; slug: string; currentVersion: string });
@@ -345,6 +354,7 @@ export async function POST(req: NextRequest) {
           );
           break;
         case 'publish_skill':
+        case 'update_skill':
           data = await handlePublishSkill(
             toolArgs as Parameters<typeof handlePublishSkill>[0],
             bearerToken

@@ -20,6 +20,8 @@ export interface CatalogSkillItem {
   downloadsCount: number;
   installsCount: number;
   isArchived?: boolean;
+  isPublic?: boolean;
+  isPaused?: boolean;
   owner: {
     username: string;
     avatarUrl: string | null;
@@ -64,6 +66,8 @@ export interface SkillDetailResult {
   downloadsCount: number;
   installsCount: number;
   isArchived?: boolean;
+  isPublic?: boolean;
+  isPaused?: boolean;
   owner: {
     id: string;
     username: string;
@@ -114,6 +118,8 @@ export async function getPublicCatalog(params?: CatalogQueryParams): Promise<{
   // 1. Fetch Skills (if requested)
   if (shouldFetchSkills) {
     const skillWhere: Prisma.SkillWhereInput = {
+      isPublic: true,
+      isPaused: false,
       isArchived: false,
     };
 
@@ -162,6 +168,8 @@ export async function getPublicCatalog(params?: CatalogQueryParams): Promise<{
         downloadsCount: s.downloadsCount,
         installsCount: s.installsCount,
         isArchived: s.isArchived,
+        isPublic: s.isPublic,
+        isPaused: s.isPaused,
         owner: s.owner,
         latestVersion,
         createdAt: s.createdAt,
@@ -240,6 +248,8 @@ export async function getSkillByOwnerAndSlug(
   const skill = await prisma.skill.findFirst({
     where: {
       slug,
+      isPublic: true,
+      isPaused: false,
       isArchived: false,
       owner: {
         username: ownerUsername,
@@ -281,6 +291,8 @@ export async function getSkillByOwnerAndSlug(
     downloadsCount: skill.downloadsCount,
     installsCount: skill.installsCount,
     isArchived: skill.isArchived,
+    isPublic: skill.isPublic,
+    isPaused: skill.isPaused,
     owner: skill.owner,
     latestVersion,
     versions: sortedVersions,

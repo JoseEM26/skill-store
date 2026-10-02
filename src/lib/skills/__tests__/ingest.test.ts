@@ -1,7 +1,8 @@
+import path from 'path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../../prisma';
 import { ingestSkill } from '../ingest';
-import { ParsedSkill } from '../validation';
+import { ParsedSkill, validateSkillFile } from '../validation';
 
 describe('Skill ingestion into PostgreSQL', () => {
   const testUser = 'integration-test-user';
@@ -137,5 +138,34 @@ describe('Skill ingestion into PostgreSQL', () => {
     expect(result.error).toContain('Regresión de versión');
     expect(result.error).toContain('1.0.0');
     expect(result.error).toContain('1.1.0');
+  });
+
+  it('ingests a skill with additional files (manual-desarrollo reference) and stores all files in SkillVersion.files', async () => {
+    const manualSkillPath = path.resolve(process.cwd(), 'skills/manual-desarrollo/SKILL.md');
+    const validation = validateSkillFile(manualSkillPath);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.skill).toBeDefined();
+
+    const result = await ingestSkill(validation.skill!, { ownerUsername: testUser });
+    expect(result.success).toBe(true);
+
+    const skillInDb = await prisma.skill.findFirst({
+      where: {
+        slug: validation.skill!.slug,
+        owner: { username: testUser },
+      },
+      include: { versions: true },
+    });
+
+    expect(skillInDb).not.toBeNull();
+    const versionInDb = skillInDb?.versions[0];
+    expect(versionInDb?.files).toBeDefined();
+
+    const files = versionInDb?.files as Record<string, string>;
+    expect(Object.keys(files)).toContain('SKILL.md');
+    expect(Object.keys(files)).toContain('plantilla-visual.html');
+    expect(files['plantilla-visual.html']).toContain('DOCTYPE html');
+    expect(files['SKILL.md']).toContain('manual-desarrollo');
   });
 });

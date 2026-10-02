@@ -14,21 +14,23 @@ export function EmptyState({
   return (
     <div
       data-testid="empty-state"
-      className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-800"
+      className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-container-highest bg-surface-container-lowest/50 p-12 text-center"
     >
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-2xl dark:bg-zinc-800">
-        🔍
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container text-primary">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <h3 className="mt-4 font-headline text-base font-semibold text-on-surface">
         {title}
       </h3>
-      <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1 max-w-sm font-body text-xs text-on-surface-variant leading-relaxed">
         {description}
       </p>
       {showReset && (
         <Link
           href="/"
-          className="mt-6 inline-flex items-center rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="mt-5 inline-flex items-center rounded-lg bg-primary hover:bg-primary-dim px-4 py-2 text-xs font-semibold text-on-primary shadow-xs transition-all active:scale-95"
         >
           Limpiar filtros
         </Link>
@@ -36,3 +38,4 @@ export function EmptyState({
     </div>
   );
 }
+

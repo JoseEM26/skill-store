@@ -1,5 +1,6 @@
+import path from 'path';
 import { describe, it, expect } from 'vitest';
-import { parseSkillMarkdown } from '../validation';
+import { parseSkillMarkdown, validateSkillFile } from '../validation';
 
 describe('SKILL.md validation', () => {
   it('parses valid SKILL.md with all required frontmatter fields', () => {
@@ -67,5 +68,17 @@ description: "unclosed string
     const markdown = `# Just a title with no frontmatter`;
 
     expect(() => parseSkillMarkdown(markdown)).toThrowError(/no contiene un bloque frontmatter YAML válido/);
+  });
+
+  it('reads all files in a multi-file skill directory (e.g. manual-desarrollo)', () => {
+    const skillPath = path.resolve(process.cwd(), 'skills/manual-desarrollo/SKILL.md');
+    const result = validateSkillFile(skillPath);
+
+    expect(result.valid).toBe(true);
+    expect(result.skill).toBeDefined();
+    expect(result.skill?.files).toBeDefined();
+    expect(Object.keys(result.skill?.files || {})).toContain('SKILL.md');
+    expect(Object.keys(result.skill?.files || {})).toContain('plantilla-visual.html');
+    expect(result.skill?.files?.['plantilla-visual.html']).toContain('DOCTYPE html');
   });
 });

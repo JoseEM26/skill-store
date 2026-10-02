@@ -8,7 +8,7 @@ description: >-
 version: 1.0.0
 author: Aybar-Corp
 license: MIT
-repository: 'https://github.com/Aybar-Corp/Skill-store'
+repository: 'https://github.com/JoseEM26/skill-store'
 ---
 
 # Requirements Analyst Skill (No-Assumptions & Standard Layout Mode)

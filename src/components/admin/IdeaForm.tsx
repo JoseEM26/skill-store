@@ -53,19 +53,24 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-        {initialData ? 'Editar Idea' : 'Nueva Idea de Producto / Contexto'}
-      </h3>
+    <form onSubmit={handleSubmit} className="space-y-4 bg-surface-container-lowest p-6 rounded-xl border border-surface-container-highest shadow-sm">
+      <div className="flex items-center gap-2 border-b border-surface-container pb-3">
+        <div className="w-7 h-7 rounded-lg bg-surface-container-high text-primary flex items-center justify-center text-sm font-bold">
+          💡
+        </div>
+        <h3 className="font-headline text-base font-bold text-on-surface">
+          {initialData ? 'Editar Idea' : 'Nueva Idea de Producto / Contexto'}
+        </h3>
+      </div>
 
       {error && (
-        <div className="p-3 text-sm bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded">
+        <div className="p-3 text-xs bg-error-container/20 border border-error/20 text-error rounded-lg">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="idea-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="idea-title" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Título *
         </label>
         <input
@@ -76,12 +81,12 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
           required
           maxLength={150}
           placeholder="Ej: Integración de memoria persistente con Engram"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all"
         />
       </div>
 
       <div>
-        <label htmlFor="idea-body" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="idea-body" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Detalle / Notas
         </label>
         <textarea
@@ -90,12 +95,12 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
           onChange={(e) => setBody(e.target.value)}
           rows={4}
           placeholder="Anota aquí requerimientos, arquitectura o ideas clave..."
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-body"
         />
       </div>
 
       <div>
-        <label htmlFor="idea-tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor="idea-tags" className="block text-xs font-medium text-on-surface mb-1 font-headline">
           Etiquetas (separadas por comas)
         </label>
         <input
@@ -104,7 +109,7 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="ai, mcp, architecture"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-mono"
         />
       </div>
 
@@ -114,20 +119,20 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
           type="checkbox"
           checked={isPublic}
           onChange={(e) => setIsPublic(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 rounded border-surface-container-highest text-primary focus:ring-primary cursor-pointer"
         />
-        <label htmlFor="idea-isPublic" className="text-sm text-gray-700 dark:text-gray-300">
-          Hacer pública esta idea (Por defecto es <span className="font-semibold text-amber-600 dark:text-amber-400">privada</span>)
+        <label htmlFor="idea-isPublic" className="text-xs text-on-surface-variant cursor-pointer select-none">
+          Hacer pública esta idea (Por defecto es <span className="font-semibold text-amber-700">privada</span>)
         </label>
       </div>
 
-      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-end space-x-2 pt-4 border-t border-surface-container">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+            className="px-3.5 py-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -135,7 +140,7 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm disabled:opacity-50"
+          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-dim text-on-primary shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {loading ? 'Guardando...' : initialData ? 'Actualizar Idea' : 'Crear Idea'}
         </button>
@@ -143,3 +148,4 @@ export function IdeaForm({ initialData, onSuccess, onCancel }: IdeaFormProps) {
     </form>
   );
 }
+

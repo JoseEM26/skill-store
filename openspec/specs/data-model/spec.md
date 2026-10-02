@@ -119,3 +119,45 @@ El sistema SHALL eliminar periódicamente de la base de datos los registros de r
 #### Scenario: Limpieza de registros antiguos
 - **WHEN** se ejecuta el proceso de depuración periódica de rate limit
 - **THEN** los registros anteriores al límite de la ventana activa son borrados físicamente de Postgres
+
+### Requirement: Visibilidad pública/privada de una skill
+El sistema SHALL permitir que el dueño de una skill la marque como pública (`isPublic: true`,
+default) o privada (`isPublic: false`). Una skill privada SHALL ser visible y gestionable
+únicamente por su dueño.
+
+#### Scenario: Skill recién publicada sin especificar visibilidad
+- **WHEN** se publica una skill nueva sin indicar visibilidad
+- **THEN** queda pública por defecto (`isPublic: true`), sin cambiar el comportamiento ya existente
+
+#### Scenario: Dueño marca su skill como privada
+- **WHEN** el dueño marca su skill como privada
+- **THEN** la skill deja de ser visible para cualquier otro usuario o token que no sea del dueño
+
+### Requirement: Pausado reversible de una skill
+El sistema SHALL permitir que el dueño pause (`isPaused: true`) y reactive (`isPaused: false`) su
+propia skill en cualquier momento, sin perder versiones ni contadores, de forma distinta e
+independiente del archivado automático e irreversible por borrado de cuenta.
+
+#### Scenario: Dueño pausa su skill
+- **WHEN** el dueño pausa una skill propia
+- **THEN** la skill queda oculta del catálogo activo y no instalable desde ahí, pero sigue
+  existiendo con su historial de versiones y contadores intactos
+
+#### Scenario: Dueño reactiva una skill pausada
+- **WHEN** el dueño reactiva una skill que estaba pausada
+- **THEN** la skill vuelve a aparecer en el catálogo activo exactamente con el estado que tenía
+
+### Requirement: Contenido completo de cada versión de skill
+El sistema SHALL almacenar el contenido completo de cada archivo de una skill (ruta relativa →
+contenido) junto a su `SkillVersion`, de forma que una versión publicada sea recuperable sin
+depender de que el repositorio de origen siga disponible.
+
+#### Scenario: Skill con un solo archivo
+- **WHEN** se publica una versión de una skill cuyo único archivo es `SKILL.md`
+- **THEN** el contenido completo de `SKILL.md` queda guardado junto a esa `SkillVersion`
+
+#### Scenario: Skill con archivos adicionales
+- **WHEN** se publica una versión de una skill que incluye archivos adicionales además de
+  `SKILL.md` (por ejemplo una plantilla)
+- **THEN** el contenido de cada archivo adicional también queda guardado, asociado a su ruta
+  relativa dentro del directorio de la skill

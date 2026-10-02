@@ -108,6 +108,63 @@ describe('Admin Skills Service (Ownership & Isolation)', () => {
     expect(checkB?.name).toBe('Skill Original B');
   });
 
+  it('allows owner to update isPublic and isPaused', async () => {
+    const skill = await createUserSkill(userA.id, {
+      slug: 'toggle-skill',
+      name: 'Toggle Skill',
+      isPublic: true,
+      isPaused: false,
+    });
+
+    expect(skill.isPublic).toBe(true);
+    expect(skill.isPaused).toBe(false);
+
+    // Make private and paused
+    const updated1 = await updateUserSkill(userA.id, {
+      id: skill.id,
+      isPublic: false,
+      isPaused: true,
+    });
+    expect(updated1.isPublic).toBe(false);
+    expect(updated1.isPaused).toBe(true);
+
+    // Revert back to public and unpaused
+    const updated2 = await updateUserSkill(userA.id, {
+      id: skill.id,
+      isPublic: true,
+      isPaused: false,
+    });
+    expect(updated2.isPublic).toBe(true);
+    expect(updated2.isPaused).toBe(false);
+  });
+
+  it('prevents user A from updating isPublic or isPaused of a skill owned by user B', async () => {
+    const skillB = await createUserSkill(userB.id, {
+      slug: 'skill-b-visibility',
+      name: 'Skill B Visibility',
+      isPublic: true,
+      isPaused: false,
+    });
+
+    await expect(
+      updateUserSkill(userA.id, {
+        id: skillB.id,
+        isPublic: false,
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    await expect(
+      updateUserSkill(userA.id, {
+        id: skillB.id,
+        isPaused: true,
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    const checkB = await getUserSkillById(skillB.id, userB.id);
+    expect(checkB?.isPublic).toBe(true);
+    expect(checkB?.isPaused).toBe(false);
+  });
+
   it('rejects update and delete operations on archived skills with AuthorizationError', async () => {
     const archivedSkill = await prisma.skill.create({
       data: {
@@ -122,6 +179,20 @@ describe('Admin Skills Service (Ownership & Isolation)', () => {
       updateUserSkill(userA.id, {
         id: archivedSkill.id,
         name: 'Should Fail',
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    await expect(
+      updateUserSkill(userA.id, {
+        id: archivedSkill.id,
+        isPublic: false,
+      })
+    ).rejects.toThrow(AuthorizationError);
+
+    await expect(
+      updateUserSkill(userA.id, {
+        id: archivedSkill.id,
+        isPaused: true,
       })
     ).rejects.toThrow(AuthorizationError);
 

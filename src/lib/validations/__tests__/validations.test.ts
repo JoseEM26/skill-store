@@ -99,4 +99,26 @@ describe('Skill validation schemas', () => {
     expect(result.id).toBe('skill_123');
     expect(result.repositoryUrl).toBeUndefined();
   });
+
+  it('validates createSkillSchema with default isPublic = true and isPaused = false', () => {
+    const result = createSkillSchema.parse({
+      slug: 'default-flags-skill',
+      name: 'Default Flags Skill',
+    });
+
+    expect(result.isPublic).toBe(true);
+    expect(result.isPaused).toBe(false);
+  });
+
+  it('validates updateSkillSchema allowing toggling isPublic and isPaused', () => {
+    const result = updateSkillSchema.parse({
+      id: 'skill_123',
+      isPublic: false,
+      isPaused: true,
+    });
+
+    expect(result.id).toBe('skill_123');
+    expect(result.isPublic).toBe(false);
+    expect(result.isPaused).toBe(true);
+  });
 });

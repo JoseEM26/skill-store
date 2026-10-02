@@ -84,6 +84,7 @@ describe('MCP Read Tools & Setup Service', () => {
           version: '1.0.0',
           changelog: 'Initial version',
           gitTag: 'v1.0.0',
+          files: { 'SKILL.md': '# Planner Agent v1.0.0' },
         },
       });
 
@@ -93,6 +94,7 @@ describe('MCP Read Tools & Setup Service', () => {
           version: '1.1.0',
           changelog: 'Added parallel dispatching',
           gitTag: 'v1.1.0',
+          files: { 'SKILL.md': '# Planner Agent v1.1.0', 'template.json': '{"key": "value"}' },
         },
       });
     });
@@ -116,7 +118,7 @@ describe('MCP Read Tools & Setup Service', () => {
       expect(noMatch.some((s) => s.slug === 'planner-agent')).toBe(false);
     });
 
-    it('get_skill returns full skill detail and version history sorted by SemVer', async () => {
+    it('get_skill returns full skill detail and version history sorted by SemVer with files', async () => {
       const skill = await handleGetSkill({
         owner: userA.username,
         slug: 'planner-agent',
@@ -125,10 +127,21 @@ describe('MCP Read Tools & Setup Service', () => {
       expect(skill.name).toBe('Planner Agent');
       expect(skill.versions.length).toBe(2);
       expect(skill.versions[0].version).toBe('1.1.0');
+      expect(skill.versions[0].files).toEqual({
+        'SKILL.md': '# Planner Agent v1.1.0',
+        'template.json': '{"key": "value"}',
+      });
       expect(skill.versions[1].version).toBe('1.0.0');
+      expect(skill.versions[1].files).toEqual({
+        'SKILL.md': '# Planner Agent v1.0.0',
+      });
+      expect(skill.latestVersion?.files).toEqual({
+        'SKILL.md': '# Planner Agent v1.1.0',
+        'template.json': '{"key": "value"}',
+      });
     });
 
-    it('get_version returns specific version details', async () => {
+    it('get_version returns specific version details and files', async () => {
       const version = await handleGetVersion({
         owner: userA.username,
         slug: 'planner-agent',
@@ -138,6 +151,9 @@ describe('MCP Read Tools & Setup Service', () => {
       expect(version.version).toBe('1.0.0');
       expect(version.changelog).toBe('Initial version');
       expect(version.gitTag).toBe('v1.0.0');
+      expect(version.files).toEqual({
+        'SKILL.md': '# Planner Agent v1.0.0',
+      });
     });
 
     it('check_updates compares currentVersion and returns update status', async () => {
@@ -156,6 +172,261 @@ describe('MCP Read Tools & Setup Service', () => {
         currentVersion: '1.1.0',
       });
       expect(upToDateRes.hasUpdate).toBe(false);
+    });
+
+    it('list_skills without token excludes private and paused skills', async () => {
+      const privateA = await prisma.skill.create({
+        data: {
+          slug: 'private-skill-a',
+          name: 'Private Skill A',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userA.id,
+        },
+      });
+
+      const pausedA = await prisma.skill.create({
+        data: {
+          slug: 'paused-skill-a',
+          name: 'Paused Skill A',
+          isPublic: true,
+          isPaused: true,
+          ownerId: userA.id,
+        },
+      });
+
+      const publicB = await prisma.skill.create({
+        data: {
+          slug: 'public-skill-b',
+          name: 'Public Skill B',
+          isPublic: true,
+          isPaused: false,
+          ownerId: userB.id,
+        },
+      });
+
+      const skills = await handleListSkills({});
+      const slugs = skills.map((s) => s.slug);
+
+      expect(slugs).toContain('planner-agent');
+      expect(slugs).toContain(publicB.slug);
+      expect(slugs).not.toContain(privateA.slug);
+      expect(slugs).not.toContain(pausedA.slug);
+    });
+
+    it('list_skills with token includes owner\'s private/paused skills, but excludes other users\' private/paused skills', async () => {
+      const privateA = await prisma.skill.create({
+        data: {
+          slug: 'priv-skill-a',
+          name: 'Priv Skill A',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userA.id,
+        },
+      });
+
+      const pausedA = await prisma.skill.create({
+        data: {
+          slug: 'pau-skill-a',
+          name: 'Pau Skill A',
+          isPublic: true,
+          isPaused: true,
+          ownerId: userA.id,
+        },
+      });
+
+      const privateB = await prisma.skill.create({
+        data: {
+          slug: 'priv-skill-b',
+          name: 'Priv Skill B',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userB.id,
+        },
+      });
+
+      const pausedB = await prisma.skill.create({
+        data: {
+          slug: 'pau-skill-b',
+          name: 'Pau Skill B',
+          isPublic: true,
+          isPaused: true,
+          ownerId: userB.id,
+        },
+      });
+
+      // User A queries with tokenA
+      const skillsA = await handleListSkills({ token: tokenA });
+      const slugsA = skillsA.map((s) => s.slug);
+
+      expect(slugsA).toContain(privateA.slug);
+      expect(slugsA).toContain(pausedA.slug);
+      expect(slugsA).not.toContain(privateB.slug);
+      expect(slugsA).not.toContain(pausedB.slug);
+
+      // User B queries with tokenB
+      const skillsB = await handleListSkills({ token: tokenB });
+      const slugsB = skillsB.map((s) => s.slug);
+
+      expect(slugsB).not.toContain(privateA.slug);
+      expect(slugsB).not.toContain(pausedA.slug);
+      expect(slugsB).toContain(privateB.slug);
+      expect(slugsB).toContain(pausedB.slug);
+    });
+
+    it('search_skills filters out private/paused skills unless authenticated as owner', async () => {
+      const hiddenSkill = await prisma.skill.create({
+        data: {
+          slug: 'supersecret-algorithm',
+          name: 'SuperSecret Algorithm',
+          description: 'Top secret quantum planner',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userA.id,
+        },
+      });
+
+      // Public / unauthenticated search
+      const noAuthSearch = await handleSearchSkills({ query: 'supersecret' });
+      expect(noAuthSearch.some((s) => s.slug === hiddenSkill.slug)).toBe(false);
+
+      // Other user (User B) search
+      const userBSearch = await handleSearchSkills({ query: 'supersecret', token: tokenB });
+      expect(userBSearch.some((s) => s.slug === hiddenSkill.slug)).toBe(false);
+
+      // Owner (User A) search
+      const ownerSearch = await handleSearchSkills({ query: 'supersecret', token: tokenA });
+      expect(ownerSearch.some((s) => s.slug === hiddenSkill.slug)).toBe(true);
+    });
+
+    it('get_skill and get_version allow owner to access private and paused skills with token, rejecting unauthenticated and non-owner callers', async () => {
+      const privateA = await prisma.skill.create({
+        data: {
+          slug: 'vault-agent',
+          name: 'Vault Agent',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userA.id,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Initial private version',
+              files: { 'SKILL.md': '# Vault Secret Content', 'keys.env': 'PRIVATE_KEY=xyz' },
+            },
+          },
+        },
+      });
+
+      const pausedA = await prisma.skill.create({
+        data: {
+          slug: 'standby-agent',
+          name: 'Standby Agent',
+          isPublic: true,
+          isPaused: true,
+          ownerId: userA.id,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Initial paused version',
+              files: { 'SKILL.md': '# Standby Agent Content' },
+            },
+          },
+        },
+      });
+
+      // 1. Private skill - handleGetSkill
+      // Without token: not found, files not exposed
+      await expect(
+        handleGetSkill({ owner: userA.username, slug: privateA.slug })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With non-owner token (User B): not found, files not exposed
+      await expect(
+        handleGetSkill({ owner: userA.username, slug: privateA.slug, token: tokenB })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With owner token (User A): found, files returned
+      const ownerPrivateSkill = await handleGetSkill({
+        owner: userA.username,
+        slug: privateA.slug,
+        token: tokenA,
+      });
+      expect(ownerPrivateSkill.name).toBe('Vault Agent');
+      expect(ownerPrivateSkill.isPublic).toBe(false);
+      expect(ownerPrivateSkill.latestVersion?.files).toEqual({
+        'SKILL.md': '# Vault Secret Content',
+        'keys.env': 'PRIVATE_KEY=xyz',
+      });
+
+      // 2. Private skill - handleGetVersion
+      // Without token: not found
+      await expect(
+        handleGetVersion({ owner: userA.username, slug: privateA.slug, version: '1.0.0' })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With non-owner token: not found
+      await expect(
+        handleGetVersion({ owner: userA.username, slug: privateA.slug, version: '1.0.0', token: tokenB })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With owner token: found, files returned
+      const ownerPrivateVersion = await handleGetVersion({
+        owner: userA.username,
+        slug: privateA.slug,
+        version: '1.0.0',
+        token: tokenA,
+      });
+      expect(ownerPrivateVersion.version).toBe('1.0.0');
+      expect(ownerPrivateVersion.files).toEqual({
+        'SKILL.md': '# Vault Secret Content',
+        'keys.env': 'PRIVATE_KEY=xyz',
+      });
+
+      // 3. Paused skill - handleGetSkill
+      // Without token: not found
+      await expect(
+        handleGetSkill({ owner: userA.username, slug: pausedA.slug })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With non-owner token (User B): not found
+      await expect(
+        handleGetSkill({ owner: userA.username, slug: pausedA.slug, token: tokenB })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With owner token (User A): found
+      const ownerPausedSkill = await handleGetSkill({
+        owner: userA.username,
+        slug: pausedA.slug,
+        token: tokenA,
+      });
+      expect(ownerPausedSkill.name).toBe('Standby Agent');
+      expect(ownerPausedSkill.isPaused).toBe(true);
+      expect(ownerPausedSkill.latestVersion?.files).toEqual({
+        'SKILL.md': '# Standby Agent Content',
+      });
+
+      // 4. Paused skill - handleGetVersion
+      // Without token: not found
+      await expect(
+        handleGetVersion({ owner: userA.username, slug: pausedA.slug, version: '1.0.0' })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With non-owner token: not found
+      await expect(
+        handleGetVersion({ owner: userA.username, slug: pausedA.slug, version: '1.0.0', token: tokenB })
+      ).rejects.toThrow(/no encontrada/i);
+
+      // With owner token: found
+      const ownerPausedVersion = await handleGetVersion({
+        owner: userA.username,
+        slug: pausedA.slug,
+        version: '1.0.0',
+        token: tokenA,
+      });
+      expect(ownerPausedVersion.version).toBe('1.0.0');
+      expect(ownerPausedVersion.files).toEqual({
+        'SKILL.md': '# Standby Agent Content',
+      });
     });
   });
 

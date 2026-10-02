@@ -327,7 +327,7 @@ describe('MCP Write Tools & Security Isolation', () => {
       expect(skillB.owner).toBe(userB.username);
     });
 
-    it('updates an existing skill when id is provided', async () => {
+    it('updates name and description of an existing skill when id is provided', async () => {
       const created = await handlePublishSkill({
         token: writeTokenA,
         slug: 'skill-to-edit',
@@ -344,6 +344,96 @@ describe('MCP Write Tools & Security Isolation', () => {
 
       expect(updated.name).toBe('After Edit');
       expect(updated.description).toBe('Updated description');
+    });
+
+    it('publishes a skill with explicit isPublic: false and isPaused: true', async () => {
+      const res = await handlePublishSkill({
+        token: writeTokenA,
+        slug: 'private-paused-skill',
+        name: 'Private Paused Skill',
+        isPublic: false,
+        isPaused: true,
+      });
+
+      expect(res.id).toBeDefined();
+      expect(res.isPublic).toBe(false);
+      expect(res.isPaused).toBe(true);
+
+      const inDb = await prisma.skill.findUnique({ where: { id: res.id } });
+      expect(inDb?.isPublic).toBe(false);
+      expect(inDb?.isPaused).toBe(true);
+      expect(inDb?.ownerId).toBe(userA.id);
+    });
+
+    it('defaults to isPublic: true and isPaused: false when omitted upon creation', async () => {
+      const res = await handlePublishSkill({
+        token: writeTokenA,
+        slug: 'default-visibility-skill',
+        name: 'Default Visibility Skill',
+      });
+
+      expect(res.isPublic).toBe(true);
+      expect(res.isPaused).toBe(false);
+
+      const inDb = await prisma.skill.findUnique({ where: { id: res.id } });
+      expect(inDb?.isPublic).toBe(true);
+      expect(inDb?.isPaused).toBe(false);
+    });
+
+    it('updates visibility and paused state on an existing skill owned by token holder', async () => {
+      const created = await handlePublishSkill({
+        token: writeTokenA,
+        slug: 'toggle-skill',
+        name: 'Toggle Skill',
+        isPublic: true,
+        isPaused: false,
+      });
+
+      const updated = await handlePublishSkill({
+        token: writeTokenA,
+        id: created.id,
+        slug: 'toggle-skill',
+        name: 'Toggle Skill Updated',
+        isPublic: false,
+        isPaused: true,
+      });
+
+      expect(updated.isPublic).toBe(false);
+      expect(updated.isPaused).toBe(true);
+
+      const inDb = await prisma.skill.findUnique({ where: { id: created.id } });
+      expect(inDb?.isPublic).toBe(false);
+      expect(inDb?.isPaused).toBe(true);
+    });
+
+    it('rejects updating visibility or paused status of another user\'s skill (ownership isolation)', async () => {
+      const skillA = await prisma.skill.create({
+        data: {
+          slug: 'skill-owner-a',
+          name: 'Skill of User A',
+          isPublic: true,
+          isPaused: false,
+          ownerId: userA.id,
+        },
+      });
+
+      // User B attempts to change visibility/paused state of User A's skill
+      await expect(
+        handlePublishSkill({
+          token: writeTokenB,
+          id: skillA.id,
+          slug: 'skill-owner-a',
+          name: 'Tampered Name',
+          isPublic: false,
+          isPaused: true,
+        })
+      ).rejects.toThrow('Skill no encontrada o no pertenece a tu usuario');
+
+      // Verify skill in DB remains unchanged
+      const inDb = await prisma.skill.findUnique({ where: { id: skillA.id } });
+      expect(inDb?.isPublic).toBe(true);
+      expect(inDb?.isPaused).toBe(false);
+      expect(inDb?.name).toBe('Skill of User A');
     });
   });
 

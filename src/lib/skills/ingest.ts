@@ -1,5 +1,8 @@
+import fs from 'fs';
+import path from 'path';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
-import { ParsedSkill, validateAllSkills } from './validation';
+import { ParsedSkill, validateAllSkills, readSkillDirectoryFiles } from './validation';
 import { compareVersions, sortVersionsDesc } from './semver';
 
 export interface IngestOptions {
@@ -150,12 +153,24 @@ export async function ingestSkill(
       const gitTag = options?.gitTag || `${slug}-v${newVersion}`;
       const changelog = options?.changelog || `Publicación de versión ${newVersion}`;
 
+      let filesToSave: Record<string, string> | null = parsedSkill.files || null;
+      if (!filesToSave && parsedSkill.filePath && fs.existsSync(parsedSkill.filePath)) {
+        const dir = fs.statSync(parsedSkill.filePath).isDirectory()
+          ? parsedSkill.filePath
+          : path.dirname(parsedSkill.filePath);
+        filesToSave = readSkillDirectoryFiles(dir);
+      }
+      if (!filesToSave) {
+        filesToSave = { 'SKILL.md': parsedSkill.body };
+      }
+
       const versionRecord = await tx.skillVersion.create({
         data: {
           skillId: skillRecord.id,
           version: newVersion,
           changelog,
           gitTag,
+          files: filesToSave as Prisma.InputJsonValue,
         },
       });
 
