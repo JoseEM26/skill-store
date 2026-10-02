@@ -39,6 +39,8 @@ contenido necesita vivir en el propio registro.
    - `whoami` — confirma la sesión activa.
    - `list` / `search <query>` — lista con selector interactivo (`readline/promises` de Node, sin
      dependencias nuevas).
+   - `tui` — **[revisado el 2026-10-02, ver nota al final]** dashboard interactivo de pantalla
+     completa (navegación por flechas, filtro en vivo, Enter para traer la skill seleccionada).
    - `pull <owner>/<slug> [--dir <ruta>]` — escribe los `files` de la skill elegida en el proyecto
      actual. Default `--dir`: `.claude/skills/<slug>/` (convención estándar de Claude Code);
      configurable para otros agentes con otra convención de carpetas.
@@ -69,3 +71,22 @@ contenido necesita vivir en el propio registro.
 - No resuelve el modelo de licencia por skill (sigue abierto, ver PRD.md → Historial de cambios).
 - El empaquetado real del CLI para distribución (`npm publish`, nombre de paquete público) queda
   fuera de este ADR — es trabajo del ítem #15 (deploy) o posterior.
+
+## Revisión 2026-10-02: comando `tui` con Ink
+
+El selector `readline/promises` (lista numerada, escribir un número) se sintió pobre comparado con
+una TUI real (referencia pedida explícitamente: `engram tui`, construida con el stack de Charm en
+Go — `bubbletea`/`bubbles`/`lipgloss`: navegación por flechas, panel con bordes, filtro en vivo).
+Reproducir eso a mano con solo `readline` no es viable en pocas líneas, así que se revierte
+puntualmente la regla de "sin dependencias nuevas" para este caso:
+
+- **Decisión:** agregar `ink` (React para terminales) como dependencia. El proyecto ya depende de
+  `react` (Next.js), así que el salto conceptual es mínimo — mismo modelo de componentes que el
+  resto del código. Nuevo comando `tui` (`pnpm cli tui`): lista navegable con flechas, filtro en
+  vivo por texto, Enter trae (`pull`) la skill seleccionada con el mismo código ya existente en
+  `src/lib/cli/commands.ts` (sin duplicar lógica), Esc/`q` para salir.
+- **Alternativa descartada:** `@clack/prompts` (prompts interactivos livianos, sin dependencia de
+  React) — da una UX más linda que el `readline` actual pero no un dashboard de pantalla completa
+  persistente; no llega al nivel pedido ("algo así como `engram tui`").
+- **`list`/`search` sin TTY o en modo `--non-interactive` siguen igual** (salida de texto plano,
+  pensada para scripting) — el comando `tui` es la superficie nueva para uso interactivo real.

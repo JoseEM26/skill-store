@@ -18,7 +18,7 @@
 | 14 | Rate limiting básico por IP | Contador de ventana deslizante en Postgres (ADR-0007) + purga periódica de la tabla | #4 | — |
 | 15 | Conectar Vercel + Neon (deploy real) | Migrar de Postgres local en Docker a Neon, desplegar el monolito en Vercel, verificar el flujo completo contra infra real | #1-#14 | — |
 | 16 | Visibilidad y pausado de skills (ADR-0011) | `isPublic`/`isPaused` en `Skill`, mismo control desde panel y MCP, advertencia de borrado según visibilidad — **hecho** ✓ | #3, #7, #9, #10 | ADR-0011 (diseño ya cerrado) |
-| 17 | CLI interactivo multi-agente (ADR-0013) | `files Json` en `SkillVersion` + ingesta guarda contenido completo, `get_skill`/`get_version` lo exponen respetando visibilidad, nuevo `bin/skills-cli.ts` (login/whoami/list/search/pull) como cliente MCP más — **hecho** ✓ | #3, #9, #16 | ADR-0013 (diseño ya cerrado) |
+| 17 | CLI interactivo multi-agente (ADR-0013) | `files Json` en `SkillVersion` + ingesta guarda contenido completo, `get_skill`/`get_version` lo exponen respetando visibilidad, nuevo `bin/skills-cli.ts` (login/whoami/list/search/pull) como cliente MCP más, más el comando `tui` (dashboard de pantalla completa con Ink: flechas, filtro en vivo, Enter para traer) — **hecho** ✓ | #3, #9, #16 | ADR-0013 (diseño ya cerrado) |
 
 **Contexto de dominio:** ninguno de estos ítems necesita reglas de negocio especializadas — es un registro de skills genérico, no un dominio regulado; todo lo necesario ya está en el PRD/TDD.
 

@@ -20,6 +20,7 @@ Comandos disponibles:
   whoami                        Verifica la sesión activa e información de usuario
   list                          Lista las skills disponibles (con selector interactivo)
   search <query>                Busca skills por término libre
+  tui                           Dashboard interactivo de pantalla completa para explorar y descargar skills
   pull <owner>/<slug> [--dir]   Descarga los archivos de una skill en el proyecto local
 
 Opciones globales:
@@ -143,6 +144,13 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       ) {
         await promptInteractiveSelection(res.data);
       }
+      return 0;
+    }
+
+    case 'tui': {
+      const { runSkillsTui } = await import('../src/lib/cli/tui');
+      const dir = (flags.dir || flags.d) as string | undefined;
+      await runSkillsTui({ dir });
       return 0;
     }
 
