@@ -76,12 +76,14 @@ export const publishSkillMcpSchema = z.object({
     .pipe(z.string().url('Debe ser una URL válida (ej. https://github.com/...)').optional()),
   isPublic: z.boolean().optional(),
   isPaused: z.boolean().optional(),
+  content: z.string().optional(),
 });
 
 export const deleteSkillMcpBaseSchema = z.object({
   token: z.string().optional(),
   id: z.string().trim().optional(),
   slug: z.string().trim().optional(),
+  confirm: z.boolean().optional().default(false),
 });
 
 export const deleteSkillMcpSchema = deleteSkillMcpBaseSchema.refine(

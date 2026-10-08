@@ -33,6 +33,10 @@ compartida por todos: catálogo, tokens, y el contador de rate limiting.
 | [ADR-0011](adrs/0011-visibilidad-y-pausado-de-skills.md) | Visibilidad pública/privada y pausado de skills | Aceptado |
 | [ADR-0012](adrs/0012-repo-plataforma-privado.md) | Repositorio de la plataforma privado, separado del código de cada skill | Aceptado |
 | [ADR-0013](adrs/0013-cli-instalacion-interactiva.md) | CLI interactivo multi-agente para listar/traer skills, contenido completo guardado en Postgres | Aceptado |
+| [ADR-0014](adrs/0014-formato-estricto-de-skill-y-gestion-propia.md) | Formato estricto de skill (frontmatter + 6 secciones), carga de contenido completo desde panel y MCP | Aceptado |
+| [ADR-0015](adrs/0015-grupos-de-skills.md) | Grupos (colecciones) de skills, gestionables desde el panel, traíbles de una vez vía CLI | Aceptado |
+| [ADR-0016](adrs/0016-creacion-por-contenido-y-filtro-prompt-injection.md) | Creación de skill por contenido completo como flujo principal, filtro heurístico de prompt injection | Aceptado |
+| [ADR-0017](adrs/0017-confirmacion-de-borrado-en-mcp.md) | Confirmación explícita (dos llamadas) antes de borrar una skill vía MCP | Propuesto |
 
 ## Modelo de datos
 
@@ -50,6 +54,10 @@ compartida por todos: catálogo, tokens, y el contador de rate limiting.
 - **AccessToken** — `id`, `ownerId → User`, `tokenHash` (SHA-256, no bcrypt/argon2 — ver ADR-0010),
   `scopes` (array de `read`/`write`/`delete`), `label`, `expiresAt` (nullable), `lastUsedAt`
   (nullable), `revokedAt` (nullable), `createdAt`.
+- **SkillGroup** — `id`, `name`, `ownerId → User`, `createdAt`, `updatedAt` (ADR-0015,
+  implementado — ítem #19).
+- **SkillGroupItem** — `groupId → SkillGroup`, `skillId → Skill`, `addedAt` (tabla de unión
+  muchos-a-muchos; ADR-0015, implementado — ítem #19).
 
 Detalle completo y alternativas descartadas en [ADR-0003](adrs/0003-modelo-de-datos.md).
 

@@ -8,7 +8,12 @@ import {
   createExternalReferenceSchema,
   updateExternalReferenceSchema,
 } from '@/lib/validations/context';
-import { createSkillSchema, updateSkillSchema } from '@/lib/validations/skill';
+import {
+  createSkillSchema,
+  updateSkillSchema,
+  updateSkillContentSchema,
+  createSkillContentSchema,
+} from '@/lib/validations/skill';
 import {
   createIdea,
   updateIdea,
@@ -19,10 +24,19 @@ import {
 } from '@/lib/admin/contexts';
 import {
   createUserSkill,
+  createUserSkillContent,
   updateUserSkill,
+  updateUserSkillContent,
   deleteUserSkill,
   ConflictError,
 } from '@/lib/admin/skills';
+import {
+  createUserGroup,
+  renameUserGroup,
+  deleteUserGroup,
+  addSkillToGroup,
+  removeSkillFromGroup,
+} from '@/lib/admin/groups';
 import { createAccessTokenSchema } from '@/lib/validations/token';
 import { createAccessToken, revokeAccessToken } from '@/lib/auth/tokens';
 import { deleteAccountService } from '@/lib/auth/account';
@@ -157,6 +171,52 @@ export async function updateSkillAction(input: unknown): Promise<ActionResult> {
   }
 }
 
+export async function updateSkillContentAction(input: unknown): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const validated = updateSkillContentSchema.parse(input);
+    const skill = await updateUserSkillContent(
+      ownerId,
+      validated.id,
+      validated.content,
+      validated.isPublic !== undefined ? { isPublic: validated.isPublic } : undefined
+    );
+    revalidatePath('/admin/skills');
+    revalidatePath('/skills');
+    revalidatePath('/');
+    return { success: true, data: skill };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al actualizar el contenido de la skill',
+    };
+  }
+}
+
+export async function createSkillContentAction(input: unknown): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const validated = createSkillContentSchema.parse(input);
+    const skill = await createUserSkillContent(
+      ownerId,
+      validated.content,
+      validated.isPublic !== undefined ? { isPublic: validated.isPublic } : undefined
+    );
+    revalidatePath('/admin/skills');
+    revalidatePath('/skills');
+    revalidatePath('/');
+    return { success: true, data: skill };
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      return { success: false, error: error.message };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al registrar la skill por contenido',
+    };
+  }
+}
+
 export async function deleteSkillAction(id: string): Promise<ActionResult> {
   try {
     const ownerId = await requireAuth();
@@ -222,4 +282,111 @@ export async function deleteAccountAction(): Promise<ActionResult> {
     };
   }
 }
+
+// --- SKILL GROUPS ---
+
+export async function createGroupAction(input: unknown): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const name = typeof input === 'string' ? input : (input as { name?: string })?.name;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return { success: false, error: 'El nombre del grupo es requerido' };
+    }
+    const group = await createUserGroup(ownerId, name);
+    revalidatePath('/admin/groups');
+    return { success: true, data: group };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al crear el grupo',
+    };
+  }
+}
+
+export async function renameGroupAction(
+  groupIdOrInput: string | { groupId: string; name: string },
+  newName?: string
+): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const groupId = typeof groupIdOrInput === 'string' ? groupIdOrInput : groupIdOrInput?.groupId;
+    const name = typeof groupIdOrInput === 'string' ? newName : groupIdOrInput?.name;
+    if (!groupId || typeof groupId !== 'string') {
+      return { success: false, error: 'El ID del grupo es requerido' };
+    }
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return { success: false, error: 'El nombre del grupo es requerido' };
+    }
+    const group = await renameUserGroup(ownerId, groupId, name);
+    revalidatePath('/admin/groups');
+    return { success: true, data: group };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al renombrar el grupo',
+    };
+  }
+}
+
+export async function deleteGroupAction(groupId: string): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    if (!groupId || typeof groupId !== 'string') {
+      return { success: false, error: 'El ID del grupo es requerido' };
+    }
+    await deleteUserGroup(ownerId, groupId);
+    revalidatePath('/admin/groups');
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al eliminar el grupo',
+    };
+  }
+}
+
+export async function addSkillToGroupAction(
+  groupIdOrInput: string | { groupId: string; skillId: string },
+  skillIdParam?: string
+): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const groupId = typeof groupIdOrInput === 'string' ? groupIdOrInput : groupIdOrInput?.groupId;
+    const skillId = typeof groupIdOrInput === 'string' ? skillIdParam : groupIdOrInput?.skillId;
+    if (!groupId || !skillId) {
+      return { success: false, error: 'groupId y skillId son requeridos' };
+    }
+    const item = await addSkillToGroup(ownerId, groupId, skillId);
+    revalidatePath('/admin/groups');
+    return { success: true, data: item };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al agregar la skill al grupo',
+    };
+  }
+}
+
+export async function removeSkillFromGroupAction(
+  groupIdOrInput: string | { groupId: string; skillId: string },
+  skillIdParam?: string
+): Promise<ActionResult> {
+  try {
+    const ownerId = await requireAuth();
+    const groupId = typeof groupIdOrInput === 'string' ? groupIdOrInput : groupIdOrInput?.groupId;
+    const skillId = typeof groupIdOrInput === 'string' ? skillIdParam : groupIdOrInput?.skillId;
+    if (!groupId || !skillId) {
+      return { success: false, error: 'groupId y skillId son requeridos' };
+    }
+    await removeSkillFromGroup(ownerId, groupId, skillId);
+    revalidatePath('/admin/groups');
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al quitar la skill del grupo',
+    };
+  }
+}
+
 

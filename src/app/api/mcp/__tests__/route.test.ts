@@ -328,5 +328,78 @@ describe('MCP Route Handler (/api/mcp)', () => {
     const parsedVersion = JSON.parse(jsonVersion.result.content[0].text);
     expect(parsedVersion.files).toEqual({ 'SKILL.md': '# Hello', 'config.json': '{"a": 1}' });
   });
+
+  it('POST /api/mcp executes list_groups and get_group with Bearer token', async () => {
+    const skill = await prisma.skill.create({
+      data: {
+        slug: 'group-skill-1',
+        name: 'Group Skill 1',
+        ownerId: user.id,
+        isPublic: true,
+        isPaused: false,
+        versions: {
+          create: {
+            version: '1.0.0',
+            files: { 'SKILL.md': '# Group Skill 1' },
+          },
+        },
+      },
+    });
+
+    const group = await prisma.skillGroup.create({
+      data: {
+        name: 'my-rpc-group',
+        ownerId: user.id,
+        items: {
+          create: [{ skillId: skill.id }],
+        },
+      },
+    });
+
+    // 1. list_groups
+    const reqList = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rawToken}` },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 13,
+        method: 'tools/call',
+        params: {
+          name: 'list_groups',
+          arguments: {},
+        },
+      }),
+    });
+    const resList = await POST(reqList);
+    const jsonList = await resList.json();
+    expect(jsonList.result.isError).toBeUndefined();
+    const parsedList = JSON.parse(jsonList.result.content[0].text);
+    expect(parsedList).toHaveLength(1);
+    expect(parsedList[0].name).toBe('my-rpc-group');
+    expect(parsedList[0].skillsCount).toBe(1);
+
+    // 2. get_group
+    const reqGet = new NextRequest('http://localhost:3000/api/mcp', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rawToken}` },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 14,
+        method: 'tools/call',
+        params: {
+          name: 'get_group',
+          arguments: { name: 'my-rpc-group' },
+        },
+      }),
+    });
+    const resGet = await POST(reqGet);
+    const jsonGet = await resGet.json();
+    expect(jsonGet.result.isError).toBeUndefined();
+    const parsedGet = JSON.parse(jsonGet.result.content[0].text);
+    expect(parsedGet.id).toBe(group.id);
+    expect(parsedGet.skills).toHaveLength(1);
+    expect(parsedGet.skills[0].slug).toBe('group-skill-1');
+    expect(parsedGet.skills[0].latestVersion.files).toEqual({ 'SKILL.md': '# Group Skill 1' });
+  });
 });
 

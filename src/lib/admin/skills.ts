@@ -8,6 +8,7 @@ import {
 } from '@/lib/validations/skill';
 import { AuthorizationError } from '@/lib/admin/contexts';
 import { Prisma } from '@prisma/client';
+import { parseSkillMarkdown } from '@/lib/skills/validation';
 
 export class ConflictError extends Error {
   constructor(message = 'Ya existe un recurso con este identificador') {
@@ -117,3 +118,136 @@ export async function deleteUserSkill(id: string, ownerId: string): Promise<Skil
     where: { id },
   });
 }
+
+export async function updateUserSkillContent(
+  ownerId: string,
+  skillId: string,
+  content: string,
+  options?: { isPublic?: boolean }
+): Promise<Skill> {
+  const existing = await prisma.skill.findFirst({
+    where: { id: skillId, ownerId },
+    include: { versions: true },
+  });
+
+  if (!existing) {
+    throw new AuthorizationError('Recurso no encontrado o no pertenece a tu usuario');
+  }
+
+  if (existing.isArchived) {
+    throw new AuthorizationError('No se pueden modificar recursos archivados');
+  }
+
+  // Parse and validate content (strict frontmatter + 6 body sections)
+  const parsed = parseSkillMarkdown(content);
+  const { name, description, license, metadata } = parsed.frontmatter;
+  const version = metadata.version;
+
+  return await prisma.$transaction(async (tx) => {
+    const updateData: Prisma.SkillUpdateInput = {
+      name,
+      description: description || null,
+      license: license || 'MIT',
+    };
+    if (options?.isPublic !== undefined) {
+      updateData.isPublic = options.isPublic;
+    }
+
+    const updatedSkill = await tx.skill.update({
+      where: { id: skillId },
+      data: updateData,
+    });
+
+    const existingVersion = await tx.skillVersion.findUnique({
+      where: {
+        skillId_version: {
+          skillId,
+          version,
+        },
+      },
+    });
+
+    const filesToSave = { 'SKILL.md': content };
+
+    if (existingVersion) {
+      await tx.skillVersion.update({
+        where: { id: existingVersion.id },
+        data: {
+          files: filesToSave as Prisma.InputJsonValue,
+        },
+      });
+    } else {
+      await tx.skillVersion.create({
+        data: {
+          skillId,
+          version,
+          changelog: `Publicación de versión ${version}`,
+          gitTag: `${existing.slug}-v${version}`,
+          files: filesToSave as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    return updatedSkill;
+  });
+}
+
+export async function createUserSkillContent(
+  ownerId: string,
+  content: string,
+  options?: { isPublic?: boolean }
+): Promise<Skill> {
+  const parsed = parseSkillMarkdown(content);
+  const { name, description, license, metadata } = parsed.frontmatter;
+  const slug = parsed.slug;
+  const version = metadata.version;
+
+  const existing = await prisma.skill.findUnique({
+    where: {
+      ownerId_slug: {
+        ownerId,
+        slug,
+      },
+    },
+  });
+
+  if (existing) {
+    throw new ConflictError(`Ya tienes una skill registrada con el slug "${slug}"`);
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const createdSkill = await tx.skill.create({
+        data: {
+          slug,
+          name,
+          description: description || null,
+          license: license || 'MIT',
+          isPublic: options?.isPublic ?? true,
+          ownerId,
+        },
+      });
+
+      const filesToSave = { 'SKILL.md': content };
+
+      await tx.skillVersion.create({
+        data: {
+          skillId: createdSkill.id,
+          version,
+          changelog: `Publicación de versión ${version}`,
+          gitTag: `${slug}-v${version}`,
+          files: filesToSave as Prisma.InputJsonValue,
+        },
+      });
+
+      return createdSkill;
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new ConflictError(`Ya tienes una skill registrada con el slug "${slug}"`);
+    }
+    throw error;
+  }
+}
+
+

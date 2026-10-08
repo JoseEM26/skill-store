@@ -45,12 +45,12 @@ async function main() {
             const versionsList = existingSkill.versions.map((v) => v.version);
             const maxVersion = sortVersionsDesc(versionsList)[0];
 
-            if (compareVersions(skill.frontmatter.version, maxVersion) < 0) {
+            if (compareVersions(skill.frontmatter.metadata.version, maxVersion) < 0) {
               versionRegression = true;
               hasErrors = true;
               result.valid = false;
               result.errors = [
-                `Regresión de versión: La versión ${skill.frontmatter.version} es menor que la versión máxima ya registrada (${maxVersion})`,
+                `Regresión de versión: La versión ${skill.frontmatter.metadata.version} es menor que la versión máxima ya registrada (${maxVersion})`,
               ];
             }
           }
@@ -60,7 +60,7 @@ async function main() {
       }
 
       if (!versionRegression) {
-        console.log(`✅ [VALID] ${skill.slug} (v${skill.frontmatter.version}) - ${relPath}`);
+        console.log(`✅ [VALID] ${skill.slug} (v${skill.frontmatter.metadata.version}) - ${relPath}`);
       } else {
         console.error(`❌ [INVALID] ${relPath}`);
         for (const err of result.errors || []) {

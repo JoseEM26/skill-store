@@ -286,6 +286,18 @@ después, una vez el MVP ya implementado:
   desactivar/pausar una skill sin borrarla, y advertencia de borrado distinta según visibilidad
   (ver Alcance). Afecta el modelo de datos (`Skill`) y las tools MCP `publish_skill`/`update_skill`
   además del panel — **implementado** (ADR-0011, ítem #16 del backlog).
+- **2026-10-05** — Creación de skills por contenido completo como flujo principal del panel (no
+  solo al editar), y filtro heurístico de prompt injection integrado al validador compartido,
+  aplicado en los tres caminos de publicación — ver ADR-0016.
+- **2026-10-04** — Paginación (ventana de 5 ítems) y selección múltiple (traer varias skills de
+  una vez) en el comando `tui` del CLI — ver ADR-0013, revisión 2026-10-04.
+- **2026-10-04** — Grupos (colecciones) de skills: armables desde el panel web, traíbles de una
+  sola vez desde el CLI/`tui` en cualquier otro proyecto — ver ADR-0015.
+- **2026-10-04** — Formato estricto de skill (frontmatter + 6 secciones obligatorias del body) y
+  gestión del catálogo propio: panel y MCP ahora aceptan el contenido completo de una skill (no
+  solo metadata), validado contra una plantilla única y estricta — ver ADR-0014. Cierra el hueco
+  dejado por ADR-0013 (que explícitamente dejaba `publish_skill` como "solo metadata, no
+  contenido" — ya no aplica).
 - **2026-10-02** — CLI interactivo para listar/elegir/traer skills y agentes propios a cualquier
   proyecto, usable desde cualquier IA o editor que hable MCP (Claude Code, Antigravity, OpenCode,
   etc.), no solo Claude Code — ver ADR-0013. **Implementado** (ítem #17 del backlog). Como efecto

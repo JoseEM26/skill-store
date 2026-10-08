@@ -20,7 +20,7 @@ export function SkillCard({ skill }: { skill: CatalogSkillItem }) {
             {skill.isArchived && (
               <span
                 data-testid="archived-badge"
-                className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
               >
                 Archivado
               </span>

@@ -13,6 +13,8 @@ import {
   publishSkillMcpSchema,
   deleteSkillMcpSchema,
 } from '@/lib/validations/mcp';
+import { parseSkillMarkdown, ParsedSkill } from '@/lib/skills/validation';
+import { getUserGroups } from '@/lib/admin/groups';
 
 export {
   createContextMcpSchema,
@@ -73,6 +75,21 @@ export const getContextInputSchema = z.object({
 export const getMySetupInputSchema = z.object({
   token: z.string().trim().min(1, 'El token de acceso es requerido'),
 });
+
+export const listGroupsInputSchema = z.object({
+  token: z.string().optional(),
+});
+
+export const getGroupInputSchema = z
+  .object({
+    name: z.string().trim().optional(),
+    groupId: z.string().trim().optional(),
+    id: z.string().trim().optional(),
+    token: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.name || data.groupId || data.id), {
+    message: 'Se requiere el nombre o ID del grupo',
+  });
 
 // Helper to extract Bearer token from header
 export function extractBearerToken(authHeader?: string | null): string | null {
@@ -704,6 +721,15 @@ export const handlePublishSkill = withAuthenticatedTool(
   async (input: z.input<typeof publishSkillMcpSchema>, ctx) => {
     const data = publishSkillMcpSchema.parse(input);
 
+    let parsedSkill: ParsedSkill | null = null;
+    if (data.content !== undefined) {
+      parsedSkill = parseSkillMarkdown(data.content);
+    }
+
+    const name = parsedSkill ? parsedSkill.frontmatter.name : data.name;
+    const description = parsedSkill ? parsedSkill.frontmatter.description : (data.description || null);
+    const license = parsedSkill ? (parsedSkill.frontmatter.license || 'MIT') : (data.license || 'MIT');
+
     if (data.id) {
       const existing = await prisma.skill.findFirst({
         where: { id: data.id, ownerId: ctx.ownerId },
@@ -720,14 +746,34 @@ export const handlePublishSkill = withAuthenticatedTool(
       const updated = await prisma.skill.update({
         where: { id: data.id },
         data: {
-          name: data.name,
-          description: data.description || null,
-          license: data.license || 'MIT',
+          name,
+          description,
+          license,
           repositoryUrl: data.repositoryUrl || null,
           ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
           ...(data.isPaused !== undefined ? { isPaused: data.isPaused } : {}),
         },
       });
+
+      if (parsedSkill && data.content !== undefined) {
+        const version = parsedSkill.frontmatter.metadata.version;
+        await prisma.skillVersion.upsert({
+          where: {
+            skillId_version: {
+              skillId: updated.id,
+              version,
+            },
+          },
+          create: {
+            skillId: updated.id,
+            version,
+            files: { 'SKILL.md': data.content },
+          },
+          update: {
+            files: { 'SKILL.md': data.content },
+          },
+        });
+      }
 
       return {
         id: updated.id,
@@ -747,13 +793,23 @@ export const handlePublishSkill = withAuthenticatedTool(
       const created = await prisma.skill.create({
         data: {
           slug: data.slug,
-          name: data.name,
-          description: data.description || null,
-          license: data.license || 'MIT',
+          name,
+          description,
+          license,
           repositoryUrl: data.repositoryUrl || null,
-          isPublic: data.isPublic ?? true,
+          isPublic: false,
           isPaused: data.isPaused ?? false,
           ownerId: ctx.ownerId,
+          ...(parsedSkill && data.content !== undefined
+            ? {
+                versions: {
+                  create: {
+                    version: parsedSkill.frontmatter.metadata.version,
+                    files: { 'SKILL.md': data.content },
+                  },
+                },
+              }
+            : {}),
         },
       });
 
@@ -807,12 +863,28 @@ export const handleDeleteSkill = withAuthenticatedTool(
       throw new Error('La skill está archivada y no admite eliminación');
     }
 
+    if (data.confirm !== true) {
+      const warningText = existing.isPublic
+        ? 'Esta skill es pública. Se eliminará del registro, pero quienes ya la descargaron o instalaron conservan su copia local (el registro no puede revocar copias ya distribuidas).'
+        : 'Esta skill es privada. Se eliminará del registro y, al no haber estado nunca en el catálogo público, no hay copias de terceros que considerar.';
+
+      return {
+        success: false as const,
+        requiresConfirmation: true,
+        id: existing.id,
+        slug: existing.slug,
+        name: existing.name,
+        isPublic: existing.isPublic,
+        message: `¿Estás seguro de que deseas eliminar permanentemente la skill "${existing.name}"? ${warningText} Para confirmar la eliminación definitiva, repite la llamada incluyendo { confirm: true }.`,
+      };
+    }
+
     await prisma.skill.delete({
       where: { id: existing.id },
     });
 
     return {
-      success: true,
+      success: true as const,
       id: existing.id,
       slug: existing.slug,
       message: 'Skill eliminada exitosamente',
@@ -881,6 +953,143 @@ export async function handleInstallSkill(input: z.input<typeof installSkillInput
     isArchived: skill?.isArchived ?? false,
     installCommand: `npx skills add ${validated.owner}/${validated.slug}`,
     message: `Skill '${validated.owner}/${validated.slug}' instalada correctamente.`,
+  };
+}
+
+/**
+ * 15. list_groups: Lists skill groups belonging to authenticated user with name and skillsCount.
+ * Returns empty array if unauthenticated or token is invalid.
+ */
+export async function handleListGroups(
+  input: z.input<typeof listGroupsInputSchema> = {},
+  bearerToken?: string | null
+) {
+  const validated = listGroupsInputSchema.parse(input);
+  const rawToken = validated.token || bearerToken;
+
+  if (!rawToken) {
+    return [];
+  }
+
+  const authResult = await validateAccessToken(rawToken, 'read');
+  if (!authResult.valid) {
+    return [];
+  }
+
+  const ownerId = authResult.user.id;
+  const groups = await getUserGroups(ownerId);
+
+  return groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    skillsCount: g._count.items,
+    createdAt: g.createdAt,
+    updatedAt: g.updatedAt,
+  }));
+}
+
+/**
+ * 16. get_group: Retrieves a skill group by name or ID for authenticated user,
+ * returning full list of its skills (including files), applying visibility/ownership criteria per skill.
+ */
+export async function handleGetGroup(
+  input: z.input<typeof getGroupInputSchema>,
+  bearerToken?: string | null
+) {
+  const validated = getGroupInputSchema.parse(input);
+  const rawToken = validated.token || bearerToken;
+
+  if (!rawToken) {
+    throw new Error('Token de acceso requerido con scope read para consultar grupos.');
+  }
+
+  const authResult = await validateAccessToken(rawToken, 'read');
+  if (!authResult.valid) {
+    throw new Error(`Autenticación fallida: ${authResult.message}`);
+  }
+
+  const ownerId = authResult.user.id;
+  const groupIdentifier = validated.id || validated.groupId;
+
+  const group = await prisma.skillGroup.findFirst({
+    where: {
+      ownerId,
+      ...(groupIdentifier ? { id: groupIdentifier } : { name: validated.name }),
+    },
+    include: {
+      items: {
+        include: {
+          skill: {
+            include: {
+              owner: { select: { username: true, avatarUrl: true } },
+              versions: { orderBy: { publishedAt: 'desc' } },
+            },
+          },
+        },
+        orderBy: { addedAt: 'asc' },
+      },
+    },
+  });
+
+  if (!group) {
+    throw new Error(`Grupo '${validated.name || groupIdentifier}' no encontrado.`);
+  }
+
+  const visibleSkills = group.items
+    .filter((item) => {
+      const skill = item.skill;
+      if (!skill) return false;
+      return (skill.isPublic && !skill.isPaused) || skill.ownerId === ownerId;
+    })
+    .map((item) => {
+      const skill = item.skill;
+      const sortedVersions = [...skill.versions].sort((a, b) => {
+        const list = sortVersionsDesc([a.version, b.version]);
+        return list[0] === a.version ? -1 : 1;
+      });
+      const latestVersion = sortedVersions[0] || null;
+
+      return {
+        id: skill.id,
+        slug: skill.slug,
+        name: skill.name,
+        description: skill.description,
+        license: skill.license,
+        repositoryUrl: skill.repositoryUrl,
+        owner: skill.owner.username,
+        isArchived: skill.isArchived,
+        isPublic: skill.isPublic,
+        isPaused: skill.isPaused,
+        installCommand: `npx skills add ${skill.owner.username}/${skill.slug}`,
+        downloadsCount: skill.downloadsCount,
+        installsCount: skill.installsCount,
+        latestVersion: latestVersion
+          ? {
+              version: latestVersion.version,
+              changelog: latestVersion.changelog,
+              gitTag: latestVersion.gitTag,
+              files: latestVersion.files ?? null,
+              publishedAt: latestVersion.publishedAt,
+            }
+          : null,
+        versions: sortedVersions.map((v) => ({
+          version: v.version,
+          changelog: v.changelog,
+          gitTag: v.gitTag,
+          files: v.files ?? null,
+          publishedAt: v.publishedAt,
+        })),
+      };
+    });
+
+  return {
+    id: group.id,
+    name: group.name,
+    ownerId: group.ownerId,
+    createdAt: group.createdAt,
+    updatedAt: group.updatedAt,
+    skillsCount: visibleSkills.length,
+    skills: visibleSkills,
   };
 }
 

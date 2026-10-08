@@ -47,7 +47,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+        <h3 className="font-headline text-lg font-bold text-on-surface">
           Skills Publicadas ({initialSkills.length})
         </h3>
         <button
@@ -56,7 +56,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
             setEditingSkill(null);
             setShowCreate(!showCreate);
           }}
-          className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded shadow-sm"
+          className="px-3.5 py-1.5 text-xs bg-primary hover:bg-primary-dim text-on-primary font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
         >
           {showCreate ? 'Cerrar Formulario' : '+ Registrar Nueva Skill'}
         </button>
@@ -75,8 +75,8 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
       )}
 
       {initialSkills.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-800">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <div className="text-center py-12 bg-surface-container-lowest rounded-xl border border-dashed border-surface-container-highest">
+          <p className="font-body text-on-surface-variant text-sm">
             No tienes skills registradas todavía. ¡Registra la primera para comenzar!
           </p>
         </div>
@@ -88,19 +88,19 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
             return (
               <div
                 key={skill.id}
-                className="bg-white dark:bg-gray-900 p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                className="bg-surface-container-lowest p-5 rounded-xl border border-surface-container-highest shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1.5 max-w-2xl">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs px-2 py-0.5 rounded font-mono bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    <span className="text-xs px-2 py-0.5 rounded font-mono bg-secondary-fixed text-on-secondary-fixed border border-secondary-fixed-dim">
                       v{latestVersion}
                     </span>
                     <span
                       data-testid="visibility-badge"
                       className={`text-xs px-2 py-0.5 rounded font-semibold border ${
                         skill.isPublic
-                          ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-surface-container text-on-surface-variant border-surface-container-highest'
                       }`}
                     >
                       {skill.isPublic ? 'Pública' : 'Privada'}
@@ -108,7 +108,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                     {skill.isPaused && (
                       <span
                         data-testid="paused-badge"
-                        className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                        className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 border border-amber-300"
                       >
                         Pausada
                       </span>
@@ -116,26 +116,26 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                     {skill.isArchived && (
                       <span
                         data-testid="archived-badge"
-                        className="text-xs px-2 py-0.5 rounded font-semibold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800"
+                        className="text-xs px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800 border border-amber-300"
                       >
                         Archivado
                       </span>
                     )}
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                    <h4 className="font-mono text-base font-bold text-on-surface">
                       {skill.name}
                     </h4>
-                    <span className="text-xs text-gray-400 font-mono">
+                    <span className="text-xs text-outline font-mono">
                       ({username}/{skill.slug})
                     </span>
                   </div>
 
                   {skill.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                    <p className="font-body text-sm text-on-surface-variant line-clamp-2">
                       {skill.description}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1">
+                  <div className="flex items-center gap-4 text-xs text-on-surface-variant pt-1">
                     <span>📥 {skill.downloadsCount} descargas</span>
                     <span>⚡ {skill.installsCount} instalaciones</span>
                     {skill.license && <span>⚖️ {skill.license}</span>}
@@ -144,7 +144,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                         href={skill.repositoryUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         GitHub ↗
                       </a>
@@ -155,7 +155,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <Link
                     href={`/skills/${username}/${skill.slug}`}
-                    className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 rounded"
+                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-primary-container/30 hover:bg-primary-container/50 rounded-lg transition-colors"
                   >
                     Ver en Catálogo
                   </Link>
@@ -164,7 +164,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                     data-testid={`toggle-visibility-${skill.id}`}
                     disabled={skill.isArchived || updatingId === skill.id}
                     onClick={() => handleToggleVisibility(skill)}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     {skill.isPublic ? 'Hacer privada' : 'Hacer pública'}
                   </button>
@@ -173,7 +173,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                     data-testid={`toggle-paused-${skill.id}`}
                     disabled={skill.isArchived || updatingId === skill.id}
                     onClick={() => handleTogglePaused(skill)}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     {skill.isPaused ? 'Reanudar' : 'Pausar'}
                   </button>
@@ -185,7 +185,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                       setShowCreate(false);
                       setEditingSkill(skill);
                     }}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     Editar
                   </button>
@@ -197,7 +197,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                       if (skill.isArchived) return;
                       setDeletingSkill(skill);
                     }}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-error bg-error-container/20 hover:bg-error-container/40 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     Eliminar
                   </button>
@@ -215,24 +215,24 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
           aria-labelledby="delete-modal-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         >
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-800 space-y-4">
-            <div className="flex items-center space-x-2 border-b pb-3 border-gray-100 dark:border-gray-800">
+          <div className="bg-surface-container-lowest rounded-xl shadow-2xl max-w-lg w-full p-6 border border-surface-container-highest space-y-4">
+            <div className="flex items-center space-x-2 border-b pb-3 border-surface-container">
               <span className="text-xl">⚠️</span>
-              <h3 id="delete-modal-title" className="text-lg font-bold text-gray-900 dark:text-white">
+              <h3 id="delete-modal-title" className="font-headline text-lg font-bold text-on-surface">
                 Confirmar eliminación
               </h3>
             </div>
 
-            <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 text-sm text-on-surface-variant">
               <p>
                 ¿Estás seguro de que deseas eliminar permanentemente la skill{' '}
-                <strong className="font-semibold text-gray-900 dark:text-white">{deletingSkill.name}</strong>?
+                <strong className="font-semibold text-on-surface">{deletingSkill.name}</strong>?
               </p>
 
               {deletingSkill.isPublic ? (
                 <div
                   data-testid="delete-public-warning"
-                  className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 rounded-lg text-xs space-y-1"
+                  className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs space-y-1"
                 >
                   <p className="font-semibold">Advertencia para skill pública:</p>
                   <p>
@@ -242,7 +242,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
               ) : (
                 <div
                   data-testid="delete-private-warning"
-                  className="p-3.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 rounded-lg text-xs space-y-1"
+                  className="p-3.5 bg-secondary-fixed/50 border border-secondary-fixed-dim text-on-secondary-fixed rounded-lg text-xs space-y-1"
                 >
                   <p className="font-semibold">Advertencia para skill privada:</p>
                   <p>
@@ -252,12 +252,12 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
               )}
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-surface-container">
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeletingSkill(null)}
-                className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-50"
+                className="px-3.5 py-1.5 text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -266,7 +266,7 @@ export function SkillList({ initialSkills, username }: SkillListProps) {
                 data-testid="confirm-delete-btn"
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
-                className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded shadow-sm disabled:opacity-50"
+                className="px-3.5 py-1.5 text-xs font-medium text-on-error bg-error hover:bg-error-dim rounded-lg shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {isDeleting ? 'Eliminando...' : 'Confirmar Eliminación'}
               </button>

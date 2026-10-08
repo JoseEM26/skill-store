@@ -54,6 +54,7 @@ describe('AdminDashboardPage Component', () => {
     expect(screen.getByText('Cerrar sesión')).toBeDefined();
     expect(screen.getByText('Ideas y Contextos')).toBeDefined();
     expect(screen.getByText('Mis Skills')).toBeDefined();
+    expect(screen.getByText('Grupos de Skills')).toBeDefined();
     expect(screen.getByText('Tokens de Acceso MCP')).toBeDefined();
   });
 });

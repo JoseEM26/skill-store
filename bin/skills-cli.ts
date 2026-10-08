@@ -2,9 +2,11 @@
 
 import {
   handleLogin,
+  handleLogout,
   handleWhoami,
   handleListOrSearch,
   handlePull,
+  handlePullGroup,
   promptInteractiveSelection,
 } from '../src/lib/cli/commands';
 
@@ -13,15 +15,17 @@ function printHelp(): void {
 CloudCode Skills CLI - Gestor de skills y agentes para asistentes de IA
 
 Uso:
-  skills <comando> [opciones]
+  cloudcode <comando> [opciones]
 
 Comandos disponibles:
   login --token <PAT>           Guarda un Personal Access Token para autenticar comandos
+  logout                        Cierra la sesión activa y borra el token guardado
   whoami                        Verifica la sesión activa e información de usuario
   list                          Lista las skills disponibles (con selector interactivo)
   search <query>                Busca skills por término libre
   tui                           Dashboard interactivo de pantalla completa para explorar y descargar skills
   pull <owner>/<slug> [--dir]   Descarga los archivos de una skill en el proyecto local
+  pull-group <nombre> [--dir]   Descarga todas las skills de un grupo guardado
 
 Opciones globales:
   --dir <ruta>                  Directorio destino para 'pull' (default: .claude/skills/<slug>/)
@@ -29,12 +33,14 @@ Opciones globales:
   --version, -v                 Muestra la versión del CLI
 
 Ejemplos:
-  $ skills login --token ccs_pat_123456789
-  $ skills whoami
-  $ skills list
-  $ skills search react
-  $ skills pull Aybar-Corp/manual-desarrollo
-  $ skills pull Aybar-Corp/manual-desarrollo --dir .cursor/skills/manual-desarrollo
+  $ cloudcode login --token ccs_pat_123456789
+  $ cloudcode logout
+  $ cloudcode whoami
+  $ cloudcode list
+  $ cloudcode search react
+  $ cloudcode tui
+  $ cloudcode pull Aybar-Corp/manual-desarrollo
+  $ cloudcode pull Aybar-Corp/manual-desarrollo --dir .cursor/skills/manual-desarrollo
 `);
 }
 
@@ -104,6 +110,13 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       return res.success ? 0 : 1;
     }
 
+    case 'logout': {
+      const configPath = (flags.config || flags.c) as string | undefined;
+      const res = await handleLogout(configPath ? { configPath } : undefined);
+      console.log(res.message);
+      return res.success ? 0 : 1;
+    }
+
     case 'whoami': {
       const res = await handleWhoami();
       console.log(res.message);
@@ -129,7 +142,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     case 'search': {
       const query = positional.join(' ') || (flags.query as string) || '';
       if (!query.trim()) {
-        console.error('Error: Debe especificar un término de búsqueda. Ej: skills search react');
+        console.error('Error: Debe especificar un término de búsqueda. Ej: cloudcode search react');
         return 1;
       }
       const res = await handleListOrSearch({ query });
@@ -157,11 +170,23 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     case 'pull': {
       const identifier = positional[0];
       if (!identifier) {
-        console.error('Error: Debe especificar la skill a descargar. Ej: skills pull Aybar-Corp/manual-desarrollo');
+        console.error('Error: Debe especificar la skill a descargar. Ej: cloudcode pull Aybar-Corp/manual-desarrollo');
         return 1;
       }
       const dir = (flags.dir || flags.d) as string | undefined;
       const res = await handlePull(identifier, { dir });
+      console.log(res.message);
+      return res.success ? 0 : 1;
+    }
+
+    case 'pull-group': {
+      const groupName = positional[0];
+      if (!groupName) {
+        console.error('Error: Debe especificar el nombre del grupo. Ej: cloudcode pull-group mi-stack');
+        return 1;
+      }
+      const dir = (flags.dir || flags.d) as string | undefined;
+      const res = await handlePullGroup(groupName, { dir });
       console.log(res.message);
       return res.success ? 0 : 1;
     }

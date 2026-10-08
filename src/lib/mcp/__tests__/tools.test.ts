@@ -10,6 +10,8 @@ import {
   handleGetContext,
   handleGetMySetup,
   handleInstallSkill,
+  handleListGroups,
+  handleGetGroup,
 } from '../tools';
 import { createAccessToken } from '@/lib/auth/tokens';
 
@@ -51,6 +53,8 @@ describe('MCP Read Tools & Setup Service', () => {
     if (userA?.id) {
       await prisma.accessToken.deleteMany({ where: { ownerId: userA.id } });
       await prisma.context.deleteMany({ where: { ownerId: userA.id } });
+      await prisma.skillGroupItem.deleteMany({ where: { group: { ownerId: userA.id } } });
+      await prisma.skillGroup.deleteMany({ where: { ownerId: userA.id } });
       await prisma.skillVersion.deleteMany({ where: { skill: { ownerId: userA.id } } });
       await prisma.skill.deleteMany({ where: { ownerId: userA.id } });
       await prisma.user.deleteMany({ where: { id: userA.id } });
@@ -58,6 +62,8 @@ describe('MCP Read Tools & Setup Service', () => {
     if (userB?.id) {
       await prisma.accessToken.deleteMany({ where: { ownerId: userB.id } });
       await prisma.context.deleteMany({ where: { ownerId: userB.id } });
+      await prisma.skillGroupItem.deleteMany({ where: { group: { ownerId: userB.id } } });
+      await prisma.skillGroup.deleteMany({ where: { ownerId: userB.id } });
       await prisma.skillVersion.deleteMany({ where: { skill: { ownerId: userB.id } } });
       await prisma.skill.deleteMany({ where: { ownerId: userB.id } });
       await prisma.user.deleteMany({ where: { id: userB.id } });
@@ -655,6 +661,208 @@ describe('MCP Read Tools & Setup Service', () => {
       expect(installRes.success).toBe(true);
       expect(installRes.isArchived).toBe(true);
       expect(installRes.installCommand).toBe(`npx skills add ${userA.username}/${archSkill.slug}`);
+    });
+  });
+
+  describe('Skill Groups Tools (ADR-0015)', () => {
+    let skillA1: { id: string; slug: string; name: string };
+    let skillA2: { id: string; slug: string; name: string };
+    let skillB1: { id: string; slug: string; name: string };
+    let groupA: { id: string; name: string };
+    let groupB: { id: string; name: string };
+
+    beforeEach(async () => {
+      skillA1 = await prisma.skill.create({
+        data: {
+          slug: 'frontend-react',
+          name: 'Frontend React',
+          description: 'React components and hooks',
+          license: 'MIT',
+          ownerId: userA.id,
+          isPublic: true,
+          isPaused: false,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Initial version',
+              files: { 'SKILL.md': '# Frontend React v1.0.0' },
+            },
+          },
+        },
+      });
+
+      skillA2 = await prisma.skill.create({
+        data: {
+          slug: 'backend-node',
+          name: 'Backend Node',
+          description: 'Node.js backend utilities',
+          license: 'Apache-2.0',
+          ownerId: userA.id,
+          isPublic: true,
+          isPaused: false,
+          versions: {
+            create: {
+              version: '2.0.0',
+              changelog: 'V2 release',
+              files: { 'SKILL.md': '# Backend Node v2.0.0', 'helper.js': 'console.log("node");' },
+            },
+          },
+        },
+      });
+
+      skillB1 = await prisma.skill.create({
+        data: {
+          slug: 'python-ml',
+          name: 'Python ML',
+          description: 'Machine learning tools',
+          license: 'MIT',
+          ownerId: userB.id,
+          isPublic: true,
+          isPaused: false,
+          versions: {
+            create: {
+              version: '1.0.0',
+              changelog: 'Initial ML version',
+              files: { 'SKILL.md': '# Python ML v1.0.0' },
+            },
+          },
+        },
+      });
+
+      // User A creates groupA with skillA1 and skillA2
+      groupA = await prisma.skillGroup.create({
+        data: {
+          name: 'fullstack-suite',
+          ownerId: userA.id,
+          items: {
+            create: [
+              { skillId: skillA1.id },
+              { skillId: skillA2.id },
+            ],
+          },
+        },
+      });
+
+      // User B creates groupB with skillB1
+      groupB = await prisma.skillGroup.create({
+        data: {
+          name: 'ml-suite',
+          ownerId: userB.id,
+          items: {
+            create: [{ skillId: skillB1.id }],
+          },
+        },
+      });
+    });
+
+    it('list_groups with valid token returns ONLY groups of the token owner with skillsCount', async () => {
+      // User A queries list_groups
+      const groupsA = await handleListGroups({ token: tokenA });
+      expect(groupsA).toHaveLength(1);
+      expect(groupsA[0].id).toBe(groupA.id);
+      expect(groupsA[0].name).toBe('fullstack-suite');
+      expect(groupsA[0].skillsCount).toBe(2);
+
+      // User B queries list_groups
+      const groupsB = await handleListGroups({ token: tokenB });
+      expect(groupsB).toHaveLength(1);
+      expect(groupsB[0].id).toBe(groupB.id);
+      expect(groupsB[0].name).toBe('ml-suite');
+      expect(groupsB[0].skillsCount).toBe(1);
+    });
+
+    it('list_groups without token or with invalid token returns empty array', async () => {
+      // Without token
+      const noTokenGroups = await handleListGroups({});
+      expect(noTokenGroups).toEqual([]);
+
+      // With invalid token
+      const invalidTokenGroups = await handleListGroups({ token: 'invalid_token_123' });
+      expect(invalidTokenGroups).toEqual([]);
+    });
+
+    it('get_group returns full group details and list of skills with files when requested by owner', async () => {
+      const res = await handleGetGroup({ name: 'fullstack-suite', token: tokenA });
+
+      expect(res.id).toBe(groupA.id);
+      expect(res.name).toBe('fullstack-suite');
+      expect(res.skillsCount).toBe(2);
+      expect(res.skills).toHaveLength(2);
+
+      const skill1 = res.skills.find((s) => s.slug === 'frontend-react');
+      expect(skill1).toBeDefined();
+      expect(skill1?.name).toBe('Frontend React');
+      expect(skill1?.latestVersion?.version).toBe('1.0.0');
+      expect(skill1?.latestVersion?.files).toEqual({ 'SKILL.md': '# Frontend React v1.0.0' });
+
+      const skill2 = res.skills.find((s) => s.slug === 'backend-node');
+      expect(skill2).toBeDefined();
+      expect(skill2?.name).toBe('Backend Node');
+      expect(skill2?.latestVersion?.version).toBe('2.0.0');
+      expect(skill2?.latestVersion?.files).toEqual({
+        'SKILL.md': '# Backend Node v2.0.0',
+        'helper.js': 'console.log("node");',
+      });
+    });
+
+    it('get_group allows lookup by groupId or id', async () => {
+      const byGroupId = await handleGetGroup({ groupId: groupA.id, token: tokenA });
+      expect(byGroupId.id).toBe(groupA.id);
+      expect(byGroupId.name).toBe('fullstack-suite');
+
+      const byId = await handleGetGroup({ id: groupA.id, token: tokenA });
+      expect(byId.id).toBe(groupA.id);
+      expect(byId.name).toBe('fullstack-suite');
+    });
+
+    it('get_group omits a skill if it is no longer visible to the caller (isPublic false / paused and not owned)', async () => {
+      // Create a private skill owned by user B, but somehow linked (defensive check)
+      const privateB = await prisma.skill.create({
+        data: {
+          slug: 'private-b-extra',
+          name: 'Private B Extra',
+          isPublic: false,
+          isPaused: false,
+          ownerId: userB.id,
+        },
+      });
+
+      // User A creates group containing skillA1 and privateB
+      await prisma.skillGroup.create({
+        data: {
+          name: 'mixed-group',
+          ownerId: userA.id,
+          items: {
+            create: [
+              { skillId: skillA1.id },
+              { skillId: privateB.id },
+            ],
+          },
+        },
+      });
+
+      const res = await handleGetGroup({ name: 'mixed-group', token: tokenA });
+      // privateB is not public and ownerId !== userA.id, so it must be omitted
+      expect(res.skills).toHaveLength(1);
+      expect(res.skills[0].slug).toBe('frontend-react');
+      expect(res.skillsCount).toBe(1);
+    });
+
+    it('get_group rejects when token belongs to another user (isolation)', async () => {
+      // User B tries to read User A's group
+      await expect(
+        handleGetGroup({ name: 'fullstack-suite', token: tokenB })
+      ).rejects.toThrow(/no encontrado/i);
+
+      await expect(
+        handleGetGroup({ groupId: groupA.id, token: tokenB })
+      ).rejects.toThrow(/no encontrado/i);
+    });
+
+    it('get_group rejects when no token is provided', async () => {
+      await expect(
+        handleGetGroup({ name: 'fullstack-suite' })
+      ).rejects.toThrow(/Token de acceso requerido/i);
     });
   });
 });

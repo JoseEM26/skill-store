@@ -40,17 +40,17 @@ export function TokenList({ initialTokens }: TokenListProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h3 className="font-headline text-lg font-bold text-on-surface">
             Tokens Personales MCP ({initialTokens.length})
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="font-body text-xs text-on-surface-variant">
             Úsalos para autenticar tus agentes y servidores MCP contra el registro.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="px-3.5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm"
+          className="px-3.5 py-2 text-xs bg-primary hover:bg-primary-dim text-on-primary font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
         >
           {showCreate ? 'Cerrar Formulario' : '+ Generar Nuevo Token'}
         </button>
@@ -69,8 +69,8 @@ export function TokenList({ initialTokens }: TokenListProps) {
       )}
 
       {initialTokens.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-800">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <div className="text-center py-12 bg-surface-container-lowest rounded-xl border border-dashed border-surface-container-highest">
+          <p className="font-body text-on-surface-variant text-sm">
             No tienes tokens de acceso generados todavía. ¡Genera uno para conectar tu MCP!
           </p>
         </div>
@@ -84,33 +84,33 @@ export function TokenList({ initialTokens }: TokenListProps) {
             return (
               <div
                 key={tok.id}
-                className="bg-white dark:bg-gray-900 p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                className="bg-surface-container-lowest p-5 rounded-xl border border-surface-container-highest shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 <div className="space-y-2 max-w-2xl">
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Status Badge */}
                     {isRevoked ? (
-                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-error-container/30 text-on-error-container border border-error/20">
                         Revocado
                       </span>
                     ) : isExpired ? (
-                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-amber-100 text-amber-800 border border-amber-300">
                         Expirado
                       </span>
                     ) : (
-                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                      <span className="text-xs px-2 py-0.5 rounded font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
                         Activo
                       </span>
                     )}
 
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                    <h4 className="font-mono text-base font-bold text-on-surface">
                       {tok.label || 'Token sin nombre'}
                     </h4>
                   </div>
 
                   {/* Scopes */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    <span className="text-xs text-on-surface-variant font-medium">
                       Scopes:
                     </span>
                     {tok.scopes.map((scope) => (
@@ -118,10 +118,10 @@ export function TokenList({ initialTokens }: TokenListProps) {
                         key={scope}
                         className={`text-xs px-2 py-0.5 rounded font-mono font-medium ${
                           scope === 'read'
-                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                            ? 'bg-secondary-fixed text-on-secondary-fixed border border-secondary-fixed-dim'
                             : scope === 'write'
-                            ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            ? 'bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary-fixed-dim'
+                            : 'bg-error-container/20 text-error border border-error/20'
                         }`}
                       >
                         {scope}
@@ -130,7 +130,7 @@ export function TokenList({ initialTokens }: TokenListProps) {
                   </div>
 
                   {/* Metadata Dates */}
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1 flex-wrap">
+                  <div className="flex items-center gap-4 text-xs text-on-surface-variant pt-1 flex-wrap">
                     <span>
                       Creado: {new Date(tok.createdAt).toLocaleDateString()}
                     </span>
@@ -147,7 +147,7 @@ export function TokenList({ initialTokens }: TokenListProps) {
                         : 'Nunca'}
                     </span>
                     {tok.revokedAt && (
-                      <span className="text-red-500">
+                      <span className="text-error font-medium">
                         Revocado el: {new Date(tok.revokedAt).toLocaleString()}
                       </span>
                     )}
@@ -160,7 +160,7 @@ export function TokenList({ initialTokens }: TokenListProps) {
                       type="button"
                       onClick={() => handleRevoke(tok.id)}
                       disabled={revokingId === tok.id}
-                      className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/50 rounded disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-medium text-error bg-error-container/20 hover:bg-error-container/40 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
                     >
                       {revokingId === tok.id ? 'Revocando...' : 'Revocar Token'}
                     </button>

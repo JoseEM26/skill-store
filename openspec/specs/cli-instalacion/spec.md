@@ -68,11 +68,14 @@ El CLI SHALL proveer el comando `tui`, que muestra un dashboard de pantalla comp
 navegación por teclado (flechas o `j`/`k`), filtro de texto en vivo sobre la lista de skills, y
 permite traer (`pull`) la skill seleccionada al presionar Enter, saliendo con Esc o `q`. El
 dashboard SHALL reflejar exactamente las mismas reglas de visibilidad/autenticación que `list` y
-`search` (skills privadas/pausadas propias incluidas si hay sesión, ajenas nunca visibles).
+`search` (skills privadas/pausadas propias incluidas si hay sesión, ajenas nunca visibles). La
+lista SHALL mostrarse como una ventana deslizante de 5 ítems visibles a la vez (sin importar
+cuántos resultados haya en total), y SHALL permitir marcar varios ítems con la tecla Tab
+para traerlos todos juntos al presionar Enter.
 
 #### Scenario: Navegación y selección
 - **WHEN** el usuario ejecuta `tui`, navega la lista con las flechas y presiona Enter sobre una
-  skill
+  skill sin haber marcado ninguna con Tab
 - **THEN** el CLI trae (`pull`) esa skill al directorio destino, igual que lo haría el comando
   `pull` directo
 
@@ -89,3 +92,39 @@ dashboard SHALL reflejar exactamente las mismas reglas de visibilidad/autenticac
 - **WHEN** el usuario tiene una sesión activa (`login` previo) y ejecuta `tui`
 - **THEN** el dashboard incluye sus propias skills privadas/pausadas junto a las públicas, sin
   mostrar privadas/pausadas de otros usuarios
+
+#### Scenario: Ventana deslizante con más de 5 resultados
+- **WHEN** la lista filtrada tiene más de 5 skills y el usuario navega con flecha abajo más allá
+  del último ítem visible
+- **THEN** la ventana visible se desplaza mostrando los siguientes ítems, manteniendo siempre como
+  máximo 5 filas de skills en pantalla
+
+#### Scenario: Selección múltiple y pull en lote
+- **WHEN** el usuario marca varios ítems con la tecla Tab (en una o más posiciones de la
+  ventana deslizante) y presiona Enter
+- **THEN** el CLI trae (`pull`) todos los ítems marcados, uno por uno, informando el resultado de
+  cada uno
+
+### Requirement: Traer un grupo completo (`pull-group`)
+El CLI SHALL proveer el comando `pull-group <nombre>`, que trae (`pull`) todas las skills de un
+grupo propio de una sola invocación, reusando la lógica de `pull` existente para cada skill, y
+SHALL informar el resultado individual de cada una (éxito o error) sin abortar el resto si una
+falla.
+
+#### Scenario: Pull de un grupo con varias skills
+- **WHEN** el usuario ejecuta `pull-group mi-stack-react` sobre un grupo propio con 10 skills
+- **THEN** el CLI trae las 10 skills a sus directorios destino, informando el resultado de cada
+  una
+
+#### Scenario: Pull de un grupo que no existe o no es propio
+- **WHEN** el usuario ejecuta `pull-group` con un nombre de grupo que no existe o no le pertenece
+- **THEN** el CLI informa que el grupo no existe o no está disponible, sin traer nada
+
+### Requirement: Selección de un grupo guardado desde `tui`
+El dashboard `tui` SHALL ofrecer una opción para elegir uno de los grupos guardados del usuario
+autenticado y traerlo completo, equivalente a ejecutar `pull-group` sobre ese grupo.
+
+#### Scenario: Elegir y traer un grupo desde el dashboard
+- **WHEN** el usuario autenticado abre `tui`, elige la opción de grupos y selecciona uno de sus
+  grupos guardados
+- **THEN** el CLI trae todas las skills de ese grupo, igual que `pull-group`

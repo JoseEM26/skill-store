@@ -8,7 +8,9 @@ import * as actions from '@/app/admin/actions';
 
 vi.mock('@/app/admin/actions', () => ({
   createSkillAction: vi.fn(),
+  createSkillContentAction: vi.fn(),
   updateSkillAction: vi.fn(),
+  updateSkillContentAction: vi.fn(),
   deleteSkillAction: vi.fn(),
 }));
 
@@ -66,7 +68,7 @@ describe('Skills Admin UI Components', () => {
     expect(screen.getByText('Registrar Nueva Skill')).toBeDefined();
   });
 
-  it('submits SkillForm successfully calling createSkillAction', async () => {
+  it('submits SkillForm successfully calling createSkillAction via metadata tab', async () => {
     vi.mocked(actions.createSkillAction).mockResolvedValue({
       success: true,
       data: {
@@ -86,6 +88,8 @@ describe('Skills Admin UI Components', () => {
 
     const handleSuccess = vi.fn();
     render(<SkillForm onSuccess={handleSuccess} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('tab-metadata'));
 
     fireEvent.change(screen.getByLabelText(/Slug/), {
       target: { value: 'super-tool' },
@@ -112,18 +116,21 @@ describe('Skills Admin UI Components', () => {
         description: 'A super useful tool',
         license: 'Apache-2.0',
         repositoryUrl: 'https://github.com/aybardev/super-tool',
+        isPublic: true,
       });
       expect(handleSuccess).toHaveBeenCalled();
     });
   });
 
-  it('handles server error when submitting SkillForm', async () => {
+  it('handles server error when submitting SkillForm in metadata mode', async () => {
     vi.mocked(actions.createSkillAction).mockResolvedValue({
       success: false,
       error: 'Ya posees una skill registrada con el slug "super-tool".',
     });
 
     render(<SkillForm onSuccess={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('tab-metadata'));
 
     fireEvent.change(screen.getByLabelText(/Slug/), {
       target: { value: 'super-tool' },
@@ -138,6 +145,135 @@ describe('Skills Admin UI Components', () => {
       expect(
         screen.getByText('Ya posees una skill registrada con el slug "super-tool".')
       ).toBeDefined();
+    });
+  });
+
+  it('defaults to content mode when creating and creates skill via createSkillContentAction', async () => {
+    vi.mocked(actions.createSkillContentAction).mockResolvedValue({
+      success: true,
+      data: mockSkills[0],
+    });
+
+    const handleSuccess = vi.fn();
+    render(<SkillForm onSuccess={handleSuccess} onCancel={vi.fn()} />);
+
+    // Content textarea is present by default without clicking any tab
+    const textarea = screen.getByTestId('skill-content-textarea');
+    expect(textarea).toBeDefined();
+
+    const sampleContent = `---
+name: awesome-agent
+description: An awesome AI assistant skill
+license: MIT
+compatibility: "Claude Code, OpenAI Codex, Cursor >= 0.40"
+metadata:
+  version: "1.0.0"
+  author: "aybardev"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+Árbol.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Manejo de errores.
+`;
+
+    fireEvent.change(textarea, { target: { value: sampleContent } });
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      expect(actions.createSkillContentAction).toHaveBeenCalledWith({
+        content: sampleContent,
+        isPublic: true,
+      });
+      expect(handleSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('creates private skill via createSkillContentAction when unchecking visibility checkbox in SkillForm', async () => {
+    vi.mocked(actions.createSkillContentAction).mockResolvedValue({
+      success: true,
+      data: { ...mockSkills[0], isPublic: false },
+    });
+
+    const handleSuccess = vi.fn();
+    render(<SkillForm onSuccess={handleSuccess} onCancel={vi.fn()} />);
+
+    const textarea = screen.getByTestId('skill-content-textarea');
+    const checkbox = screen.getByTestId('skill-content-isPublic-checkbox') as HTMLInputElement;
+
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(false);
+
+    const sampleContent = `---
+name: private-agent
+description: A private skill
+license: MIT
+compatibility: "Claude Code"
+metadata:
+  version: "1.0.0"
+  author: "aybardev"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+Árbol.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Manejo de errores.
+`;
+
+    fireEvent.change(textarea, { target: { value: sampleContent } });
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      expect(actions.createSkillContentAction).toHaveBeenCalledWith({
+        content: sampleContent,
+        isPublic: false,
+      });
+      expect(handleSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('shows specific validation error when creating skill with invalid content in SkillForm', async () => {
+    vi.mocked(actions.createSkillContentAction).mockResolvedValue({
+      success: false,
+      error: 'Frontmatter inválido: metadata: El campo "metadata" es obligatorio',
+    });
+
+    render(<SkillForm onSuccess={vi.fn()} onCancel={vi.fn()} />);
+
+    const textarea = screen.getByTestId('skill-content-textarea');
+    fireEvent.change(textarea, { target: { value: 'invalid content' } });
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      const errorDiv = screen.getByTestId('form-error');
+      expect(errorDiv.textContent).toContain('Frontmatter inválido');
     });
   });
 
@@ -324,5 +460,144 @@ describe('Skills Admin UI Components', () => {
     expect(deleteBtn.disabled).toBe(true);
     expect(toggleVisBtn.disabled).toBe(true);
     expect(togglePauseBtn.disabled).toBe(true);
+  });
+
+  it('switches to content tab and saves markdown content successfully', async () => {
+    vi.mocked(actions.updateSkillContentAction).mockResolvedValue({
+      success: true,
+      data: mockSkills[0],
+    });
+
+    const handleSuccess = vi.fn();
+    render(<SkillForm initialData={mockSkills[0]} onSuccess={handleSuccess} onCancel={vi.fn()} />);
+
+    // Click on content tab
+    fireEvent.click(screen.getByTestId('tab-content'));
+
+    const textarea = screen.getByTestId('skill-content-textarea');
+    expect(textarea).toBeDefined();
+
+    const sampleContent = `---
+name: awesome-agent
+description: An awesome AI assistant skill
+license: MIT
+compatibility: "Claude Code, OpenAI Codex, Cursor >= 0.40"
+metadata:
+  version: "1.0.0"
+  author: "aybardev"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+Árbol.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Manejo de errores.
+`;
+
+    fireEvent.change(textarea, { target: { value: sampleContent } });
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      expect(actions.updateSkillContentAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        content: sampleContent,
+        isPublic: true,
+      });
+      expect(handleSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('updates skill visibility from public to private when editing in content tab of SkillForm', async () => {
+    vi.mocked(actions.updateSkillContentAction).mockResolvedValue({
+      success: true,
+      data: { ...mockSkills[0], isPublic: false },
+    });
+
+    const handleSuccess = vi.fn();
+    render(<SkillForm initialData={mockSkills[0]} onSuccess={handleSuccess} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('tab-content'));
+
+    const sampleContent = `---
+name: awesome-agent
+description: An awesome AI assistant skill
+license: MIT
+compatibility: "Claude Code, OpenAI Codex, Cursor >= 0.40"
+metadata:
+  version: "1.0.0"
+  author: "aybardev"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+Árbol.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Manejo de errores.
+`;
+
+    const textarea = screen.getByTestId('skill-content-textarea');
+    fireEvent.change(textarea, { target: { value: sampleContent } });
+
+    const checkbox = screen.getByTestId('skill-content-isPublic-checkbox') as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(false);
+
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      expect(actions.updateSkillContentAction).toHaveBeenCalledWith({
+        id: 'skill-1',
+        content: sampleContent,
+        isPublic: false,
+      });
+      expect(handleSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('shows specific validation error when saving invalid markdown content in SkillForm', async () => {
+    vi.mocked(actions.updateSkillContentAction).mockResolvedValue({
+      success: false,
+      error: 'Estructura del cuerpo inválida: Faltan las siguientes secciones obligatorias en el cuerpo: "## 6. Manejo de Errores y Casos Excepcionales"',
+    });
+
+    render(<SkillForm initialData={mockSkills[0]} onSuccess={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('tab-content'));
+
+    const textarea = screen.getByTestId('skill-content-textarea');
+    fireEvent.change(textarea, { target: { value: 'invalid content' } });
+    fireEvent.click(screen.getByTestId('save-content-btn'));
+
+    await waitFor(() => {
+      const errorDiv = screen.getByTestId('form-error');
+      expect(errorDiv.textContent).toContain('Faltan las siguientes secciones obligatorias');
+      expect(errorDiv.textContent).toContain('6. Manejo de Errores y Casos Excepcionales');
+    });
   });
 });

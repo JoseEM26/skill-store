@@ -35,6 +35,19 @@ export const updateSkillSchema = z.object({
   isPaused: z.boolean().optional(),
 });
 
+export const updateSkillContentSchema = z.object({
+  id: z.string().min(1, 'El ID es requerido'),
+  content: z.string().min(1, 'El contenido es requerido'),
+  isPublic: z.boolean().optional(),
+});
+
+export const createSkillContentSchema = z.object({
+  content: z.string().min(1, 'El contenido es requerido'),
+  isPublic: z.boolean().optional(),
+});
+
 export type CreateSkillInput = z.input<typeof createSkillSchema>;
 export type UpdateSkillInput = z.input<typeof updateSkillSchema>;
+export type UpdateSkillContentInput = z.input<typeof updateSkillContentSchema>;
+export type CreateSkillContentInput = z.input<typeof createSkillContentSchema>;
 

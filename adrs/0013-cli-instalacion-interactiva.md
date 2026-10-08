@@ -90,3 +90,135 @@ puntualmente la regla de "sin dependencias nuevas" para este caso:
   persistente; no llega al nivel pedido ("algo así como `engram tui`").
 - **`list`/`search` sin TTY o en modo `--non-interactive` siguen igual** (salida de texto plano,
   pensada para scripting) — el comando `tui` es la superficie nueva para uso interactivo real.
+
+## Revisión 2026-10-04: paginación y selección múltiple en `tui`
+
+Con catálogos reales el `tui` listaba todas las skills de una (sin límite), lo que desborda el
+panel de la terminal y hace incómodo navegar. Además solo permitía traer una skill a la vez.
+
+- **Decisión:** la lista del `tui` pasa a ser una ventana deslizante (scrolling viewport) de 5
+  ítems visibles a la vez — no "páginas" con click, sino que navegar con flecha abajo más allá del
+  último ítem visible desplaza la ventana, mostrando un indicador tipo "3-7 de 23". Se agrega
+  selección múltiple con la tecla Tab (toggle sobre el ítem resaltado, marcado visualmente,
+  ej. `[x]`); Enter trae (`pull`) todos los ítems marcados — si ninguno fue marcado con Tab,
+  Enter sigue trayendo solo el ítem resaltado (compatibilidad con el comportamiento actual).
+- **Razón:** una ventana deslizante de tamaño fijo es más simple de implementar y más predecible
+  para el usuario que paginación con números de página, y resuelve exactamente el problema
+  reportado ("no quiero que se salga del panel terminal").
+- **Alcance explícitamente fuera de esta revisión:** filtros estructurados adicionales (por
+  visibilidad, por dueño, etc.) más allá del filtro de texto en vivo ya existente — el pedido fue
+  ambiguo y se prioriza lo concreto (paginación + selección múltiple). Puede revisarse después con
+  un pedido más específico.
+
+## Revisión 2026-10-05: comando `logout` y alias de comando con nombre de marca
+
+No había forma de cerrar sesión (ni, por lo tanto, cambiar de cuenta de forma limpia) desde el
+CLI — `login --token <X>` sobrescribe el token guardado, pero no existía ningún comando para
+borrarlo. Además, el alias `pnpm cli <comando>` no refleja el nombre de la plataforma
+("CloudCode Skills Registry"), sintiéndose genérico.
+
+- **Decisión:** agregar el comando `logout` (borra el token guardado en
+  `~/.config/cloudcode-skills/config.json`, confirma con un mensaje claro si no había sesión
+  activa). Renombrar el alias del script en `package.json` de `"cli"` a `"cloudcode"` — el comando
+  pasa a invocarse `pnpm cloudcode <comando>` (ej. `pnpm cloudcode logout`, `pnpm cloudcode tui`),
+  reflejando el nombre real del producto. El archivo `bin/skills-cli.ts` y su texto de ayuda
+  interno (`Uso: skills <comando>...`) se actualizan para decir `cloudcode` en vez de `skills`.
+- **Razón:** cerrar sesión es una operación básica de cualquier CLI con autenticación; no tenerla
+  obligaba a buscar y borrar el archivo de config a mano para cambiar de cuenta. El alias
+  "cli" genérico no comunica qué producto es — renombrarlo a `cloudcode` es consistente con el
+  nombre ya usado en el header del `tui` ("☁️ CloudCode Skills Registry").
+- **Alcance fuera de esta revisión:** no se agrega un keybinding de logout dentro del propio
+  `tui` (que es específicamente para navegar/traer skills) — cerrar sesión sigue siendo un
+  comando aparte, corrido antes o después de usar `tui`. El renombrado de `bin/skills-cli.ts` como
+  archivo (vs. solo el alias del script) queda a criterio de quien implemente, sin ser
+  obligatorio.
+
+## Revisión 2026-10-05: menú principal con categorías al entrar a `tui`
+
+Hoy `tui` entra directo a una lista plana mezclando skills propias y públicas de otros (con
+badges `[Privada]`/`[Pausada]` inline), y el modo Grupos solo es alcanzable con el atajo oculto
+Ctrl+G. El usuario pidió explícitamente un menú de opciones visible al entrar, para elegir entre
+grupos, skills públicas de la comunidad, y las propias (separadas por públicas/privadas).
+
+- **Decisión:** `tui` pasa a abrir en una pantalla de **menú principal** (nuevo modo `'menu'`),
+  con las opciones:
+  1. 🔍 Explorar todas (comportamiento actual: combinado, propias + públicas de otros)
+  2. 👤 Mis skills públicas
+  3. 🔒 Mis skills privadas
+  4. 🌐 Skills públicas de la comunidad (excluye las propias)
+  5. 📦 Grupos
+  6. Salir
+  Navegación con flechas + Enter para entrar a la categoría elegida. Dentro de cualquier lista,
+  **Esc vuelve al menú principal** (no cierra la app); solo Esc/`q` desde el menú principal cierra
+  `tui`. El atajo Ctrl+G se elimina (reemplazado por la opción de menú "Grupos").
+- **Fuente de datos (sin cambios de backend/MCP):** se reutilizan las tools MCP ya existentes.
+  `get_my_setup` ya devuelve `skills` = todas las propias (cualquier visibilidad) vía
+  `ownerId: userId` — de ahí se derivan "Mis skills públicas"/"Mis skills privadas" filtrando
+  client-side por `isPublic`. `list_skills` ya devuelve el combinado (propias + públicas de
+  terceros) — de ahí se derivan "Explorar todas" (sin cambios) y "Skills públicas de la
+  comunidad" filtrando client-side por `owner !== username propio` (obtenido de
+  `get_my_setup().user.username`, una sola llamada cacheada al entrar al menú).
+- **Razón:** no se necesita ningún parámetro nuevo en el servidor MCP — los tres conjuntos de
+  datos (propias, combinado, público-de-terceros) ya son derivables en el cliente a partir de dos
+  tools de lectura existentes, evitando tocar `src/lib/mcp/tools.ts`.
+- **Riesgo conocido a vigilar en la implementación:** la misma clase de bug ya encontrada dos
+  veces en este componente (tecla imprimible de atajo colisionando con el foco permanente de
+  `ink-text-input`, corrompiendo el filtro en vivo) — cualquier atajo nuevo de navegación del menú
+  debe evitar teclas imprimibles sueltas mientras el filtro esté activo, siguiendo el mismo
+  criterio ya aplicado a Tab (marcar) y Ctrl+G (antes de removerse en esta revisión).
+- **Alcance fuera de esta revisión:** no se agrega un filtro de categoría dentro de "Explorar
+  todas" (sigue siendo la vista combinada tal cual existe hoy) — las categorías nuevas son rutas
+  de menú alternativas, no un filtro adicional sobre la vista combinada.
+
+## Revisión 2026-10-05: apartado de login/logout dentro del menú principal de `tui`
+
+Con el menú principal ya implementado (revisión anterior), el usuario reportó que no ve ninguna
+opción de iniciar/cerrar sesión al entrar a `tui` — hay que salir y correr `cloudcode
+login`/`cloudcode logout` aparte. Esto **revierte puntualmente** la nota de alcance de la revisión
+"comando `logout`..." (2026-10-05, más arriba) que decía explícitamente que no se agregaría un
+keybinding de logout dentro del `tui`: en uso real, mezclar el menú de navegación con un apartado
+visible de sesión resultó más natural que mantenerlos separados.
+
+- **Decisión:** el menú principal gana un ítem adicional, dinámico según el estado de sesión
+  (determinado localmente vía `readStoredToken`, sin llamada de red):
+  - Sin sesión activa: `🔑 Iniciar sesión` — al seleccionarlo, `tui` sale mostrando un mensaje
+    instructivo con el comando exacto a correr (`cloudcode login --token <tu_token>`) y dónde
+    generar un token (`<baseUrl>/admin/tokens`). No se construye un flujo de entrada de token
+    dentro de Ink (ver Alternativas).
+  - Con sesión activa: `🚪 Cerrar sesión` — al seleccionarlo, ejecuta `clearStoredToken` (mismo
+    código ya usado por `cloudcode logout`) y sale mostrando el mismo mensaje de confirmación
+    ("Sesión cerrada correctamente.").
+- **Razón:** reutiliza exactamente la lógica ya implementada y verificada (`clearStoredToken`) en
+  vez de duplicarla; evita construir un campo de entrada de texto enmascarado para pegar un token
+  secreto dentro de Ink, que es trabajo bastante mayor para un beneficio marginal frente al comando
+  `login` ya existente y ya probado end-to-end.
+- **Alternativas consideradas:** aceptar el token pegado directamente dentro de `tui` (vía un
+  `<TextInput>` adicional) — se descarta por ahora: requiere enmascarar el valor, validar formato,
+  y manejar el mismo riesgo de conflicto de foco con atajos ya documentado en este archivo: no
+  vale la pena duplicar lo que `cloudcode login --token <PAT>` ya resuelve bien.
+- **Riesgo conocido a vigilar en la implementación:** mismo que la revisión anterior — no usar
+  teclas imprimibles sueltas como atajo mientras el filtro esté activo.
+
+## Revisión 2026-10-05: banner grande de marca en la pantalla de menú de `tui`
+
+El usuario pidió explícitamente un diseño más grande y vistoso para el nombre de la marca al
+entrar a `tui` ("el nombre del logo de la empresa grande, mejor el diseño... un banner grande"),
+en vez del título de una sola línea que hoy encabeza cada pantalla (`☁️ CloudCode Skills Registry
+- Menú Principal`).
+
+- **Decisión:** la pantalla de **menú principal** (el "índice" de `tui`, primera pantalla al
+  entrar) gana un banner ASCII grande con el nombre "CLOUDCODE" como arte de texto multi-línea
+  (estilo bloque, similar a `figlet`), renderizado con `<Text bold color="cyan">` de Ink línea por
+  línea dentro del `Box` del encabezado — **sin agregar ninguna dependencia nueva** (nada de
+  `figlet`/`chalk-animation`/etc., el arte ASCII se escribe como constante estática de strings,
+  siguiendo la regla ya establecida en este proyecto de no sumar dependencias para esto). Debajo
+  del banner grande, se mantiene el subtítulo "Skills Registry" y la línea de versión/ayuda ya
+  existente. **Las pantallas de lista** (Explorar todas, Mis skills, Grupos, etc.) **mantienen el
+  encabezado compacto de una línea actual** — el banner grande es solo para la pantalla de menú,
+  para no robar espacio vertical de la ventana deslizante de 5 ítems al navegar.
+- **Razón:** una sola pantalla (el menú/índice, que es la portada de la herramienta) se beneficia
+  de una presencia de marca grande; las pantallas de navegación activa priorizan densidad de
+  información (más ítems visibles) sobre decoración.
+- **Alcance fuera de esta revisión:** no se agrega color configurable/temas, ni animación — texto
+  estático en negrita, un solo color fijo (cian, consistente con el color ya usado en el modo
+  "Explorar todas"/"skills" de este componente).

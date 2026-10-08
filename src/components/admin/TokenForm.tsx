@@ -61,14 +61,14 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-5 bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm"
+      className="space-y-5 bg-surface-container-lowest p-6 rounded-xl border border-surface-container-highest shadow-xs"
     >
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+      <h3 className="font-headline text-lg font-bold text-on-surface">
         Generar Nuevo Token de Acceso MCP
       </h3>
 
       {error && (
-        <div className="p-3 text-sm bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded">
+        <div className="p-3 text-xs bg-error-container/20 border border-error/20 text-error rounded-lg font-body">
           {error}
         </div>
       )}
@@ -76,7 +76,7 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
       <div>
         <label
           htmlFor="token-label"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-xs font-medium text-on-surface mb-1 font-headline"
         >
           Nombre / Etiqueta del Token *
         </label>
@@ -88,12 +88,12 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
           required
           maxLength={100}
           placeholder="Ej: Claude Code Desktop, Terminal de trabajo, Script CI"
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-body"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-xs font-medium text-on-surface mb-2 font-headline">
           Permisos (Scopes) *
         </label>
         <div className="space-y-2">
@@ -102,11 +102,11 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
               type="checkbox"
               checked={scopes.includes('read')}
               onChange={() => toggleScope('read')}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="mt-1 h-4 w-4 rounded border-surface-container-highest text-primary focus:ring-primary cursor-pointer"
             />
             <div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">read</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-sm font-semibold font-mono text-on-surface">read</span>
+              <p className="text-xs text-on-surface-variant font-body">
                 Lectura de catálogo, skills, versiones y contextos accesibles.
               </p>
             </div>
@@ -117,11 +117,11 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
               type="checkbox"
               checked={scopes.includes('write')}
               onChange={() => toggleScope('write')}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="mt-1 h-4 w-4 rounded border-surface-container-highest text-primary focus:ring-primary cursor-pointer"
             />
             <div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">write</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-sm font-semibold font-mono text-on-surface">write</span>
+              <p className="text-xs text-on-surface-variant font-body">
                 Creación y actualización de skills, versiones e ideas de contexto propias.
               </p>
             </div>
@@ -132,11 +132,11 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
               type="checkbox"
               checked={scopes.includes('delete')}
               onChange={() => toggleScope('delete')}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="mt-1 h-4 w-4 rounded border-surface-container-highest text-primary focus:ring-primary cursor-pointer"
             />
             <div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">delete</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-sm font-semibold font-mono text-on-surface">delete</span>
+              <p className="text-xs text-on-surface-variant font-body">
                 Eliminación de recursos y contextos pertenecientes a tu cuenta.
               </p>
             </div>
@@ -147,7 +147,7 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
       <div>
         <label
           htmlFor="token-expiration"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-xs font-medium text-on-surface mb-1 font-headline"
         >
           Expiración
         </label>
@@ -157,7 +157,7 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
           onChange={(e) =>
             setExpirationPreset(e.target.value as 'never' | '30d' | '90d' | '365d')
           }
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm"
+          className="w-full px-3 py-2 border border-surface-container-highest bg-surface-container-low focus:bg-surface-container-lowest rounded-lg text-on-surface text-xs focus:outline-none focus:ring-1 focus:ring-primary transition-all font-body cursor-pointer"
         >
           <option value="30d">30 días</option>
           <option value="90d">90 días (Recomendado)</option>
@@ -166,19 +166,19 @@ export function TokenForm({ onSuccess, onCancel }: TokenFormProps) {
         </select>
       </div>
 
-      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-end space-x-2 pt-4 border-t border-surface-container">
         <button
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+          className="px-3.5 py-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm disabled:opacity-50"
+          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-dim text-on-primary shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {loading ? 'Generando...' : 'Generar Token'}
         </button>

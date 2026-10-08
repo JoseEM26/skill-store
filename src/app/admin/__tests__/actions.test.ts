@@ -6,11 +6,18 @@ import {
   createExternalReferenceAction,
   deleteContextAction,
   createSkillAction,
+  createSkillContentAction,
   updateSkillAction,
+  updateSkillContentAction,
   deleteSkillAction,
   createAccessTokenAction,
   revokeAccessTokenAction,
   deleteAccountAction,
+  createGroupAction,
+  renameGroupAction,
+  deleteGroupAction,
+  addSkillToGroupAction,
+  removeSkillFromGroupAction,
 } from '../actions';
 import { hashToken } from '@/lib/auth/tokens';
 import type { Session } from 'next-auth';
@@ -49,12 +56,14 @@ describe('Admin Server Actions (Security & Authorization)', () => {
 
   afterEach(async () => {
     if (userA?.id) {
+      await prisma.skillGroup.deleteMany({ where: { ownerId: userA.id } });
       await prisma.accessToken.deleteMany({ where: { ownerId: userA.id } });
       await prisma.context.deleteMany({ where: { ownerId: userA.id } });
       await prisma.skill.deleteMany({ where: { ownerId: userA.id } });
       await prisma.user.deleteMany({ where: { id: userA.id } });
     }
     if (userB?.id) {
+      await prisma.skillGroup.deleteMany({ where: { ownerId: userB.id } });
       await prisma.accessToken.deleteMany({ where: { ownerId: userB.id } });
       await prisma.context.deleteMany({ where: { ownerId: userB.id } });
       await prisma.skill.deleteMany({ where: { ownerId: userB.id } });
@@ -283,5 +292,368 @@ describe('Admin Server Actions (Security & Authorization)', () => {
 
     const ideaInDb = await prisma.context.findFirst({ where: { title: 'Secret idea to delete', ownerId: userA.id } });
     expect(ideaInDb).toBeNull();
+  });
+
+  it('updates skill content through Server Action for authenticated owner', async () => {
+    const skillA = await prisma.skill.create({
+      data: {
+        slug: 'action-skill-content',
+        name: 'Initial Name',
+        ownerId: userA.id,
+      },
+    });
+
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const validMarkdown = `---
+name: action-skill-content
+description: Action updated description
+license: MIT
+compatibility: "Claude Code, OpenAI Codex, Cursor >= 0.40"
+metadata:
+  version: "1.0.0"
+  author: "User A"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Flujo.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+Árbol.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Errores.
+`;
+
+    const res = await updateSkillContentAction({
+      id: skillA.id,
+      content: validMarkdown,
+    });
+
+    expect(res.success).toBe(true);
+
+    const updated = await prisma.skill.findUnique({
+      where: { id: skillA.id },
+      include: { versions: true },
+    });
+    expect(updated?.description).toBe('Action updated description');
+    expect(updated?.versions).toHaveLength(1);
+    expect(updated?.versions[0].version).toBe('1.0.0');
+  });
+
+  it('creates skill via createSkillContentAction for authenticated owner', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const validMarkdown = `---
+name: action-created-skill
+description: Created directly via content action
+license: MIT
+compatibility: "Claude Code"
+metadata:
+  version: "1.0.0"
+  author: "User A"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+No aplica.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Errores.
+`;
+
+    const res = await createSkillContentAction({
+      content: validMarkdown,
+    });
+
+    expect(res.success).toBe(true);
+
+    const created = await prisma.skill.findFirst({
+      where: { slug: 'action-created-skill', ownerId: userA.id },
+      include: { versions: true },
+    });
+    expect(created).not.toBeNull();
+    expect(created?.name).toBe('action-created-skill');
+    expect(created?.description).toBe('Created directly via content action');
+    expect(created?.isPublic).toBe(true);
+    expect(created?.versions).toHaveLength(1);
+    expect(created?.versions[0].version).toBe('1.0.0');
+
+    // Duplicate creation returns conflict error
+    const duplicateRes = await createSkillContentAction({
+      content: validMarkdown,
+    });
+    expect(duplicateRes.success).toBe(false);
+    expect(duplicateRes.error).toContain('Ya tienes una skill registrada con el slug "action-created-skill"');
+  });
+
+  it('creates private skill via createSkillContentAction when isPublic is false', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const validMarkdown = `---
+name: private-action-skill
+description: Private skill via content action
+license: MIT
+compatibility: "Claude Code"
+metadata:
+  version: "1.0.0"
+  author: "User A"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+No aplica.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Errores.
+`;
+
+    const res = await createSkillContentAction({
+      content: validMarkdown,
+      isPublic: false,
+    });
+
+    expect(res.success).toBe(true);
+
+    const created = await prisma.skill.findFirst({
+      where: { slug: 'private-action-skill', ownerId: userA.id },
+    });
+    expect(created?.isPublic).toBe(false);
+  });
+
+  it('updates skill visibility via updateSkillContentAction', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const skill = await prisma.skill.create({
+      data: {
+        slug: 'update-vis-content-skill',
+        name: 'Update Vis Skill',
+        ownerId: userA.id,
+        isPublic: true,
+      },
+    });
+
+    const validMarkdown = `---
+name: update-vis-content-skill
+description: Updated vis
+license: MIT
+compatibility: "Claude Code"
+metadata:
+  version: "1.0.0"
+  author: "User A"
+---
+
+## 1. Propósito y Cuándo Usar
+Propósito.
+
+## 2. Flujo de Trabajo (Workflow)
+Workflow.
+
+## 3. Reglas y Restricciones (Criterios de Diseño)
+Reglas.
+
+## 4. Árbol de Decisión (Si aplica)
+No aplica.
+
+## 5. Ejemplos Ejecutables
+Ejemplos.
+
+## 6. Manejo de Errores y Casos Excepcionales
+Errores.
+`;
+
+    const res = await updateSkillContentAction({
+      id: skill.id,
+      content: validMarkdown,
+      isPublic: false,
+    });
+
+    expect(res.success).toBe(true);
+    const updated = await prisma.skill.findUnique({ where: { id: skill.id } });
+    expect(updated?.isPublic).toBe(false);
+  });
+
+  it('prevents user A from updating skill content belonging to user B via Server Action', async () => {
+    const skillB = await prisma.skill.create({
+      data: {
+        slug: 'skill-b-forbidden',
+        name: 'Skill B',
+        ownerId: userB.id,
+      },
+    });
+
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const validMarkdown = `---
+name: skill-b-forbidden
+description: Attempted hack by user A
+license: MIT
+compatibility: "Claude Code"
+metadata:
+  version: "1.0.0"
+  author: "User A"
+---
+
+## 1. Propósito y Cuándo Usar
+...
+## 2. Flujo de Trabajo (Workflow)
+...
+## 3. Reglas y Restricciones (Criterios de Diseño)
+...
+## 4. Árbol de Decisión (Si aplica)
+...
+## 5. Ejemplos Ejecutables
+...
+## 6. Manejo de Errores y Casos Excepcionales
+...
+`;
+
+    const res = await updateSkillContentAction({
+      id: skillB.id,
+      content: validMarkdown,
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('no pertenece a tu usuario');
+  });
+
+  it('performs CRUD and skill associations on skill groups for authenticated owner', async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    // Create group
+    const createRes = await createGroupAction({ name: 'Group Actions Test' });
+    expect(createRes.success).toBe(true);
+    const group = createRes.data as { id: string; name: string };
+    expect(group.name).toBe('Group Actions Test');
+
+    // Create own skill
+    const skillA = await prisma.skill.create({
+      data: {
+        slug: 'skill-action-a',
+        name: 'Skill A Action',
+        ownerId: userA.id,
+      },
+    });
+
+    // Add skill to group
+    const addRes = await addSkillToGroupAction(group.id, skillA.id);
+    expect(addRes.success).toBe(true);
+
+    // Rename group
+    const renameRes = await renameGroupAction(group.id, 'Group Actions Renamed');
+    expect(renameRes.success).toBe(true);
+    const renamed = renameRes.data as { name: string };
+    expect(renamed.name).toBe('Group Actions Renamed');
+
+    // Remove skill from group
+    const removeRes = await removeSkillFromGroupAction(group.id, skillA.id);
+    expect(removeRes.success).toBe(true);
+
+    // Delete group
+    const deleteRes = await deleteGroupAction(group.id);
+    expect(deleteRes.success).toBe(true);
+  });
+
+  it('rejects adding a private skill owned by user B to a group owned by user A', async () => {
+    const groupA = await prisma.skillGroup.create({
+      data: {
+        name: 'Group of A',
+        ownerId: userA.id,
+      },
+    });
+
+    const skillB = await prisma.skill.create({
+      data: {
+        slug: 'skill-b-for-group',
+        name: 'Skill B',
+        ownerId: userB.id,
+        isPublic: false,
+      },
+    });
+
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const addRes = await addSkillToGroupAction(groupA.id, skillB.id);
+    expect(addRes.success).toBe(false);
+    expect(addRes.error).toContain('no pertenece a tu usuario');
+  });
+
+  it('allows adding a public skill owned by user B to a group owned by user A', async () => {
+    const groupA = await prisma.skillGroup.create({
+      data: {
+        name: 'Group of A Public',
+        ownerId: userA.id,
+      },
+    });
+
+    const publicSkillB = await prisma.skill.create({
+      data: {
+        slug: 'public-skill-b-for-group',
+        name: 'Public Skill B',
+        ownerId: userB.id,
+        isPublic: true,
+        isPaused: false,
+      },
+    });
+
+    mockAuth.mockResolvedValue({
+      user: { id: userA.id, name: 'User A' },
+      expires: new Date().toISOString(),
+    } as unknown as Session);
+
+    const addRes = await addSkillToGroupAction(groupA.id, publicSkillB.id);
+    expect(addRes.success).toBe(true);
   });
 });

@@ -54,8 +54,8 @@ export async function ingestSkill(
   parsedSkill: ParsedSkill,
   options?: IngestOptions
 ): Promise<IngestSkillResult> {
-  const authorName = options?.ownerUsername || parsedSkill.frontmatter.author || 'default-owner';
-  const newVersion = parsedSkill.frontmatter.version;
+  const authorName = options?.ownerUsername || parsedSkill.frontmatter.metadata?.author || 'default-owner';
+  const newVersion = parsedSkill.frontmatter.metadata?.version;
   const slug = parsedSkill.slug;
 
   try {
@@ -86,8 +86,9 @@ export async function ingestSkill(
             name: parsedSkill.frontmatter.name,
             description: parsedSkill.frontmatter.description,
             ownerId: owner.id,
-            license: parsedSkill.frontmatter.license,
-            repositoryUrl: parsedSkill.frontmatter.repository,
+            license: parsedSkill.frontmatter.license || 'MIT',
+            repositoryUrl: (parsedSkill.frontmatter as unknown as { repository?: string }).repository || null,
+            isPublic: false,
           },
         });
         action = 'created';
@@ -108,8 +109,8 @@ export async function ingestSkill(
           data: {
             name: parsedSkill.frontmatter.name,
             description: parsedSkill.frontmatter.description,
-            license: parsedSkill.frontmatter.license,
-            repositoryUrl: parsedSkill.frontmatter.repository,
+            license: parsedSkill.frontmatter.license || 'MIT',
+            repositoryUrl: (parsedSkill.frontmatter as unknown as { repository?: string }).repository || null,
           },
         });
 

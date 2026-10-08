@@ -20,6 +20,7 @@ model User {
   skills       Skill[]
   contexts     Context[]
   accessTokens AccessToken[]
+  skillGroups  SkillGroup[]
 }
 
 model Skill {
@@ -39,6 +40,7 @@ model Skill {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   versions       SkillVersion[]
+  groupItems     SkillGroupItem[]
 
   @@unique([ownerId, slug])
 }
@@ -91,4 +93,24 @@ model RateLimitHit {
   createdAt DateTime @default(now())
 
   @@index([ip, endpoint, createdAt])
+}
+
+model SkillGroup {
+  id        String          @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items     SkillGroupItem[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model SkillGroupItem {
+  groupId String
+  group   SkillGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  skillId String
+  skill   Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  addedAt DateTime   @default(now())
+
+  @@unique([groupId, skillId])
 }

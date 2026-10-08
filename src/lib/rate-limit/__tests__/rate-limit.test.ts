@@ -14,20 +14,12 @@ describe('Rate Limiting (Postgres sliding window)', () => {
 
   beforeEach(async () => {
     // Clean test records before each test
-    await prisma.rateLimitHit.deleteMany({
-      where: {
-        ip: { in: [TEST_IP_1, TEST_IP_2, '127.0.0.1', '10.0.0.1'] },
-      },
-    });
+    await prisma.rateLimitHit.deleteMany({});
   });
 
   afterAll(async () => {
     // Clean all test records after test suite completes
-    await prisma.rateLimitHit.deleteMany({
-      where: {
-        ip: { in: [TEST_IP_1, TEST_IP_2, '127.0.0.1', '10.0.0.1'] },
-      },
-    });
+    await prisma.rateLimitHit.deleteMany({});
   });
 
   describe('getClientIp', () => {

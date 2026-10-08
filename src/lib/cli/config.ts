@@ -46,3 +46,15 @@ export function saveStoredToken(token: string, customPath?: string): string {
   fs.writeFileSync(filePath, JSON.stringify(newConfig, null, 2), 'utf8');
   return filePath;
 }
+
+export function clearStoredToken(customPath?: string): boolean {
+  const filePath = customPath || getConfigPath();
+  const currentConfig = readConfig(filePath);
+  if (!currentConfig || !currentConfig.token) {
+    return false;
+  }
+  const remainingConfig = { ...currentConfig };
+  delete remainingConfig.token;
+  fs.writeFileSync(filePath, JSON.stringify(remainingConfig, null, 2), 'utf8');
+  return true;
+}

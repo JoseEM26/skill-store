@@ -11,7 +11,7 @@
     "test:skills": "tsx scripts/validate-skills.ts",
     "db:ingest-skills": "tsx scripts/ingest-skills.ts",
     "db:purge-rate-limits": "tsx scripts/purge-rate-limits.ts",
-    "cli": "tsx bin/skills-cli.ts"
+    "cloudcode": "tsx bin/skills-cli.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",

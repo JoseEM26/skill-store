@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline/promises';
-import { readStoredToken, saveStoredToken } from './config';
-import { callMcpTool, MySetupData, SkillDetail, SkillSummary } from './client';
+import { clearStoredToken, readStoredToken, saveStoredToken } from './config';
+import { callMcpTool, GroupDetail, MySetupData, SkillDetail, SkillSummary } from './client';
 
 export interface CommandResult<T = unknown> {
   success: boolean;
@@ -39,6 +39,34 @@ export async function handleLogin(options: {
     return {
       success: false,
       message: `Error al guardar configuración: ${msg}`,
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Handles `logout`
+ */
+export async function handleLogout(options?: {
+  configPath?: string;
+}): Promise<CommandResult> {
+  try {
+    const cleared = clearStoredToken(options?.configPath);
+    if (cleared) {
+      return {
+        success: true,
+        message: 'Sesión cerrada correctamente.',
+      };
+    }
+    return {
+      success: true,
+      message: 'No había ninguna sesión activa.',
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error desconocido';
+    return {
+      success: false,
+      message: `Error al cerrar sesión: ${msg}`,
       error: msg,
     };
   }
@@ -183,6 +211,7 @@ export async function handlePull(
     baseUrl?: string;
     targetBaseDir?: string;
     fetchFn?: typeof fetch;
+    token?: string | null;
   }
 ): Promise<CommandResult<{ targetDir: string; filesWritten: string[] }>> {
   if (!skillIdentifier || !skillIdentifier.includes('/')) {
@@ -205,7 +234,7 @@ export async function handlePull(
     };
   }
 
-  const token = readStoredToken(options?.configPath);
+  const token = options?.token || readStoredToken(options?.configPath);
   const result = await callMcpTool<SkillDetail>(
     'get_skill',
     { owner, slug },
@@ -272,6 +301,122 @@ export async function handlePull(
     success: true,
     message: msgLines.join('\n'),
     data: { targetDir: destDir, filesWritten },
+  };
+}
+
+export interface PullGroupResultData {
+  groupName: string;
+  totalSkills: number;
+  pulledSkills: string[];
+  failedSkills: string[];
+}
+
+/**
+ * Handles `pull-group <groupName>`
+ */
+export async function handlePullGroup(
+  groupName: string,
+  options?: {
+    dir?: string;
+    configPath?: string;
+    baseUrl?: string;
+    targetBaseDir?: string;
+    fetchFn?: typeof fetch;
+    token?: string | null;
+  }
+): Promise<CommandResult<PullGroupResultData>> {
+  if (!groupName || !groupName.trim()) {
+    return {
+      success: false,
+      message: 'Error: Debe especificar el nombre del grupo. Ej: skills pull-group mi-stack',
+      error: 'Nombre de grupo no especificado',
+    };
+  }
+
+  const cleanGroupName = groupName.trim();
+  const token = options?.token || readStoredToken(options?.configPath);
+
+  const result = await callMcpTool<GroupDetail>(
+    'get_group',
+    { name: cleanGroupName },
+    {
+      token,
+      baseUrl: options?.baseUrl,
+      fetchFn: options?.fetchFn,
+    }
+  );
+
+  if (!result.success || !result.data) {
+    return {
+      success: false,
+      message: `Error: El grupo '${cleanGroupName}' no existe o no está disponible.`,
+      error: result.error || 'Grupo no encontrado o no disponible',
+    };
+  }
+
+  const group = result.data;
+  const skills = group.skills || [];
+
+  if (skills.length === 0) {
+    return {
+      success: true,
+      message: `⚠️ El grupo '${cleanGroupName}' no contiene skills disponibles.`,
+      data: {
+        groupName: cleanGroupName,
+        totalSkills: 0,
+        pulledSkills: [],
+        failedSkills: [],
+      },
+    };
+  }
+
+  const pulledSkills: string[] = [];
+  const failedSkills: string[] = [];
+  const outputLines: string[] = [
+    `📦 Descargando grupo '${cleanGroupName}' (${skills.length} skills)...`,
+    '',
+  ];
+
+  for (const skill of skills) {
+    const identifier = `${skill.owner}/${skill.slug}`;
+    try {
+      const pullRes = await handlePull(identifier, {
+        dir: options?.dir,
+        configPath: options?.configPath,
+        baseUrl: options?.baseUrl,
+        targetBaseDir: options?.targetBaseDir,
+        fetchFn: options?.fetchFn,
+        token,
+      });
+
+      if (pullRes.success) {
+        pulledSkills.push(identifier);
+        outputLines.push(`  ✅ ${identifier}: descargada`);
+      } else {
+        failedSkills.push(identifier);
+        outputLines.push(`  ❌ ${identifier}: ${pullRes.error || pullRes.message}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error inesperado';
+      failedSkills.push(identifier);
+      outputLines.push(`  ❌ ${identifier}: ${msg}`);
+    }
+  }
+
+  outputLines.push('');
+  outputLines.push(
+    `Resumen: ${pulledSkills.length}/${skills.length} skills descargadas con éxito.`
+  );
+
+  return {
+    success: failedSkills.length === 0,
+    message: outputLines.join('\n'),
+    data: {
+      groupName: cleanGroupName,
+      totalSkills: skills.length,
+      pulledSkills,
+      failedSkills,
+    },
   };
 }
 

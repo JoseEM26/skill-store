@@ -15,6 +15,8 @@ import {
   handlePublishSkill,
   handleDeleteSkill,
   handleInstallSkill,
+  handleListGroups,
+  handleGetGroup,
 } from '@/lib/mcp/tools';
 import { rateLimitGuard } from '@/lib/rate-limit';
 
@@ -193,6 +195,7 @@ const AVAILABLE_TOOLS = [
         id: { type: 'string', description: 'ID de la skill a eliminar' },
         slug: { type: 'string', description: 'Slug de la skill a eliminar' },
         token: { type: 'string', description: 'Token de acceso personal opcional si se envía Bearer header' },
+        confirm: { type: 'boolean', description: 'Confirmación requerida para proceder con el borrado definitivo (default false)' },
       },
     },
   },
@@ -206,6 +209,28 @@ const AVAILABLE_TOOLS = [
         slug: { type: 'string', description: 'Identificador slug de la skill' },
       },
       required: ['owner', 'slug'],
+    },
+  },
+  {
+    name: 'list_groups',
+    description: 'Lista los grupos de skills pertenecientes al usuario autenticado.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
+      },
+    },
+  },
+  {
+    name: 'get_group',
+    description: 'Obtiene un grupo de skills por nombre o ID con la lista completa de sus skills y archivos.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nombre del grupo de skills' },
+        groupId: { type: 'string', description: 'ID del grupo de skills (opcional si se provee name)' },
+        token: { type: 'string', description: 'Token de acceso personal opcional' },
+      },
     },
   },
 ];
@@ -368,6 +393,18 @@ export async function POST(req: NextRequest) {
           break;
         case 'install_skill':
           data = await handleInstallSkill(toolArgs as Parameters<typeof handleInstallSkill>[0]);
+          break;
+        case 'list_groups':
+          data = await handleListGroups(
+            toolArgs as Parameters<typeof handleListGroups>[0],
+            bearerToken
+          );
+          break;
+        case 'get_group':
+          data = await handleGetGroup(
+            toolArgs as Parameters<typeof handleGetGroup>[0],
+            bearerToken
+          );
           break;
         default:
           return NextResponse.json(

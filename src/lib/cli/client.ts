@@ -43,6 +43,24 @@ export interface SkillDetail extends SkillSummary {
   }>;
 }
 
+export interface GroupSummary {
+  id: string;
+  name: string;
+  skillsCount: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface GroupDetail {
+  id: string;
+  name: string;
+  ownerId: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  skillsCount: number;
+  skills: SkillDetail[];
+}
+
 export interface MySetupData {
   user: {
     id: string;
