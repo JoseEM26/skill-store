@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline/promises';
+import http from 'node:http';
+import crypto from 'node:crypto';
+import { exec } from 'node:child_process';
 import { clearStoredToken, readStoredToken, saveStoredToken } from './config';
-import { callMcpTool, GroupDetail, MySetupData, SkillDetail, SkillSummary } from './client';
+import { callMcpTool, getRegistryUrl, GroupDetail, MySetupData, SkillDetail, SkillSummary } from './client';
 
 export interface CommandResult<T = unknown> {
   success: boolean;
@@ -10,6 +13,162 @@ export interface CommandResult<T = unknown> {
   data?: T;
   error?: string;
 }
+
+export function openDefaultBrowser(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    let cmd: string;
+    if (process.platform === 'darwin') {
+      cmd = `open "${url}"`;
+    } else if (process.platform === 'win32') {
+      cmd = `cmd /c start "" "${url}"`;
+    } else {
+      cmd = `xdg-open "${url}"`;
+    }
+
+    exec(cmd, (error) => {
+      if (error) {
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
+export interface BrowserLoginOptions {
+  baseUrl?: string;
+  configPath?: string;
+  timeoutMs?: number;
+  openBrowserFn?: (url: string) => Promise<boolean>;
+}
+
+/**
+ * Handles automatic login via local HTTP server and browser
+ */
+export async function handleBrowserLogin(
+  options?: BrowserLoginOptions
+): Promise<CommandResult<{ configPath: string }>> {
+  const baseUrl = getRegistryUrl(options?.baseUrl);
+  const state = crypto.randomBytes(16).toString('hex');
+  const timeoutMs = options?.timeoutMs ?? 180_000;
+  const openFn = options?.openBrowserFn ?? openDefaultBrowser;
+
+  return new Promise<CommandResult<{ configPath: string }>>((resolve) => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isFinished = false;
+
+    const server = http.createServer((req, res) => {
+      // CORS headers to allow browser fetch from admin panel
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      const reqUrl = req.url?.split('?')[0];
+      if (req.method !== 'POST' || reqUrl !== '/callback') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'not_found' }));
+        return;
+      }
+
+      let rawBody = '';
+      req.on('data', (chunk) => {
+        rawBody += chunk;
+      });
+
+      req.on('end', () => {
+        try {
+          const body = JSON.parse(rawBody);
+          if (
+            !body ||
+            body.state !== state ||
+            !body.token ||
+            typeof body.token !== 'string'
+          ) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'invalid_state' }));
+            return;
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+
+          const savedPath = saveStoredToken(body.token, options?.configPath);
+          finish({
+            success: true,
+            message: `✅ Sesión iniciada correctamente. Token guardado en ${savedPath}`,
+            data: { configPath: savedPath },
+          });
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'invalid_body' }));
+        }
+      });
+    });
+
+    function finish(result: CommandResult<{ configPath: string }>) {
+      if (isFinished) return;
+      isFinished = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      try {
+        server.close();
+        if (typeof (server as unknown as { closeAllConnections?: () => void }).closeAllConnections === 'function') {
+          (server as unknown as { closeAllConnections: () => void }).closeAllConnections();
+        }
+      } catch {}
+      resolve(result);
+    }
+
+    server.on('error', (err) => {
+      finish({
+        success: false,
+        message: `Error en el servidor local de autenticación: ${err.message}`,
+        error: err.message,
+      });
+    });
+
+    timeoutId = setTimeout(() => {
+      finish({
+        success: false,
+        message: `Tiempo de espera agotado (3 min). No se recibió la autenticación desde el navegador.\nPodés iniciar sesión manualmente con:\n  cloudcode login --token <PAT>\nGenerá un token en ${baseUrl}/admin/tokens si no tenés uno.`,
+        error: 'timeout',
+      });
+    }, timeoutMs);
+
+    server.listen(0, async () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        finish({
+          success: false,
+          message: 'No se pudo obtener el puerto del servidor local.',
+          error: 'port_error',
+        });
+        return;
+      }
+
+      const realPort = address.port;
+      const authUrl = `${baseUrl}/admin/cli-auth?port=${realPort}&state=${state}`;
+
+      console.log(`Abriendo navegador para iniciar sesión en:\n  ${authUrl}\n`);
+
+      const opened = await openFn(authUrl);
+      if (!opened) {
+        console.log(
+          `⚠️ No se pudo abrir el navegador automáticamente.\nPor favor abrí el siguiente enlace manualmente en tu navegador:\n  ${authUrl}\nO iniciá sesión con: cloudcode login --token <PAT>\n`
+        );
+      }
+    });
+  });
+}
+
 
 /**
  * Handles `login --token <PAT>`

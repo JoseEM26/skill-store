@@ -3,7 +3,7 @@ import type * as InkType from 'ink';
 import type TextInputType from 'ink-text-input';
 import { callMcpTool, McpCallResult, SkillSummary, GroupSummary, MySetupData, getRegistryUrl } from './client';
 import { readStoredToken, clearStoredToken } from './config';
-import { handlePull, handlePullGroup } from './commands';
+import { handlePull, handlePullGroup, handleBrowserLogin } from './commands';
 
 export type TuiMode = 'menu' | 'skills' | 'groups';
 export type SkillCategory = 'all' | 'my-public' | 'my-private' | 'community';
@@ -176,7 +176,7 @@ export const SkillsTuiInner: React.FC<InnerProps> = ({
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'browsing' | 'pulling' | 'done'>('browsing');
+  const [status, setStatus] = useState<'browsing' | 'pulling' | 'authenticating' | 'done'>('browsing');
   const [pullResults, setPullResults] = useState<Array<{ success: boolean; message: string; error?: string }>>([]);
 
   useEffect(() => {
@@ -395,18 +395,40 @@ export const SkillsTuiInner: React.FC<InnerProps> = ({
           return;
         }
         if (item.id === 'login') {
-          const regUrl = getRegistryUrl(baseUrl);
-          setPullResults([
-            {
-              success: true,
-              message: `Para iniciar sesión corré: cloudcode login --token <tu_token>\nGenerá un token en ${regUrl}/admin/tokens si no tenés uno.`,
-            },
-          ]);
-          setStatus('done');
-          setTimeout(() => {
-            exit();
-            onExit?.();
-          }, 10);
+          setStatus('authenticating');
+          (async () => {
+            try {
+              const res = await handleBrowserLogin({ baseUrl, configPath });
+              if (res.success) {
+                setPullResults([res]);
+              } else {
+                const regUrl = getRegistryUrl(baseUrl);
+                setPullResults([
+                  {
+                    success: false,
+                    message: `${res.message}\n\nPara iniciar sesión corré: cloudcode login --token <tu_token>\nGenerá un token en ${regUrl}/admin/tokens si no tenés uno.`,
+                    error: res.error,
+                  },
+                ]);
+              }
+            } catch (err: unknown) {
+              const regUrl = getRegistryUrl(baseUrl);
+              const msg = err instanceof Error ? err.message : 'Error desconocido';
+              setPullResults([
+                {
+                  success: false,
+                  message: `Error al iniciar sesión: ${msg}\n\nPara iniciar sesión corré: cloudcode login --token <tu_token>\nGenerá un token en ${regUrl}/admin/tokens si no tenés uno.`,
+                  error: msg,
+                },
+              ]);
+            } finally {
+              setStatus('done');
+              setTimeout(() => {
+                exit();
+                onExit?.();
+              }, 10);
+            }
+          })();
           return;
         }
         if (item.id === 'logout') {
@@ -656,6 +678,13 @@ export const SkillsTuiInner: React.FC<InnerProps> = ({
         <Box marginTop={1}>
           <Text color="yellow">
             {isGroupMode ? '⏳ Descargando grupo de skills...' : '⏳ Descargando skill(s)...'}
+          </Text>
+        </Box>
+      )}
+      {status === 'authenticating' && (
+        <Box marginTop={1}>
+          <Text color="yellow">
+            ⏳ Abriendo navegador para iniciar sesión...
           </Text>
         </Box>
       )}

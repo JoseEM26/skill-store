@@ -199,6 +199,53 @@ visible de sesión resultó más natural que mantenerlos separados.
 - **Riesgo conocido a vigilar en la implementación:** mismo que la revisión anterior — no usar
   teclas imprimibles sueltas como atajo mientras el filtro esté activo.
 
+## Revisión 2026-10-07: login automático vía navegador (sin copiar/pegar un token)
+
+El flujo actual de "🔑 Iniciar sesión" (revisión anterior) solo imprime instrucciones: el usuario
+tiene que abrir `/admin/tokens` a mano, crear un token, copiarlo, y pegarlo en
+`cloudcode login --token <PAT>`. El usuario pidió que, al elegir esa opción, el navegador se abra
+solo, inicie sesión ahí (GitHub OAuth, que ya existe), y el CLI reciba el token automáticamente —
+sin copiar/pegar nada. Mismo patrón que `gh auth login`, `vercel login`, `wrangler login`, etc.
+
+- **Decisión — "device flow" simplificado vía callback local:**
+  1. El CLI (tanto `cloudcode login` sin `--token` como la opción "Iniciar sesión" del `tui`)
+     levanta un servidor HTTP local efímero en un puerto libre (`localhost:<puerto>`), genera un
+     `state` aleatorio de un solo uso, y abre el navegador por defecto del sistema en
+     `<baseUrl>/admin/cli-auth?port=<puerto>&state=<state>` (usando el mismo mecanismo ya usado en
+     otros proyectos: `open`/`xdg-open`/`start` según el SO — sin agregar una librería nueva si el
+     comando nativo del SO alcanza).
+  2. **Nueva página `/admin/cli-auth`** (bajo `/admin/*`, así reutiliza gratis la protección ya
+     existente del middleware: si no hay sesión, redirige a GitHub OAuth y vuelve acá después del
+     login).
+  3. Una vez autenticado, `/admin/cli-auth` genera un Personal Access Token nuevo (reusando
+     `createAccessToken`, scopes `['read','write']`, label `"CLI login <fecha>"`) y lo manda al
+     callback local del CLI con un **POST desde JS en el cliente** (`fetch('http://localhost:<puerto>/callback', { method: 'POST', body: JSON.stringify({ token, state }) })`)
+     — nunca como parámetro de URL/redirect, para que el token no quede en el historial del
+     navegador ni en logs de acceso. La página muestra luego "✅ Listo, podés cerrar esta pestaña."
+  4. El servidor local del CLI recibe el POST en `/callback`, valida que el `state` coincida con
+     el que generó (si no, lo ignora), guarda el token con `saveStoredToken` (mismo código que
+     `cloudcode login --token`), cierra el servidor local, y confirma en la terminal/tui.
+  5. **Timeout de 3 minutos**: si no llega el callback, el CLI corta el servidor local y muestra un
+     mensaje claro con la alternativa manual (`cloudcode login --token <PAT>`, que sigue existiendo
+     sin cambios).
+  6. **Si no se puede abrir un navegador** (entorno headless/SSH sin `DISPLAY`): el CLI detecta el
+     fallo al invocar el comando de apertura del SO y cae de inmediato al mensaje manual actual
+     (imprime la URL completa para abrir a mano, igual que hoy).
+- **Razón:** el usuario ya tiene sesión de GitHub en el navegador en la mayoría de los casos —
+  automatizar la creación y entrega del token elimina por completo el paso manual de
+  copiar/pegar, que es justamente la fricción reportada. El state de un solo uso + POST (no GET)
+  evita que el token quede expuesto en el historial del navegador o en una URL compartida por
+  accidente.
+- **Alcance sin cambios respecto a la revisión anterior:** `cloudcode login --token <PAT>` sigue
+  funcionando exactamente igual (camino manual, para CI/scripts/entornos sin navegador). No se
+  agrega ningún campo de texto dentro de Ink — sigue siendo válido lo ya decidido arriba.
+- **Alternativas consideradas:** un flujo de "device code" completo tipo OAuth Device Authorization
+  Grant (RFC 8628), con un código corto que el usuario escribe a mano en el navegador — se
+  descarta por ahora: más robusto para el caso de que el CLI corra en una máquina distinta a la del
+  navegador (ej. un servidor remoto por SSH), pero bastante más trabajo de implementar; el callback
+  local alcanza para el caso de uso real (todo corre en la misma laptop). Puede revisarse si en el
+  futuro se usa el CLI desde un entorno remoto real.
+
 ## Revisión 2026-10-05: banner grande de marca en la pantalla de menú de `tui`
 
 El usuario pidió explícitamente un diseño más grande y vistoso para el nombre de la marca al

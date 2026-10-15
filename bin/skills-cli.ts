@@ -2,6 +2,7 @@
 
 import {
   handleLogin,
+  handleBrowserLogin,
   handleLogout,
   handleWhoami,
   handleListOrSearch,
@@ -105,7 +106,16 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   switch (command) {
     case 'login': {
       const token = (flags.token || flags.t || positional[0]) as string | undefined;
-      const res = await handleLogin({ token });
+      const configPath = (flags.config || flags.c) as string | undefined;
+      const baseUrl = (flags.baseUrl || flags.url) as string | undefined;
+
+      if (token) {
+        const res = await handleLogin({ token, configPath });
+        console.log(res.message);
+        return res.success ? 0 : 1;
+      }
+
+      const res = await handleBrowserLogin({ configPath, baseUrl });
       console.log(res.message);
       return res.success ? 0 : 1;
     }

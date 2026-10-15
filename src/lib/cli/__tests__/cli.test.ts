@@ -5,7 +5,7 @@ import os from 'os';
 import { prisma } from '@/lib/prisma';
 import { createAccessToken } from '@/lib/auth/tokens';
 import { clearStoredToken, readStoredToken, saveStoredToken } from '../config';
-import { handleLogin, handleLogout, handleWhoami, handleListOrSearch, handlePull, handlePullGroup } from '../commands';
+import { handleLogin, handleBrowserLogin, handleLogout, handleWhoami, handleListOrSearch, handlePull, handlePullGroup } from '../commands';
 import * as commands from '../commands';
 import { main } from '../../../../bin/skills-cli';
 
@@ -73,6 +73,109 @@ describe('CLI Standalone Tests', () => {
       const res = await handleLogin({ token: '', configPath });
       expect(res.success).toBe(false);
       expect(res.message).toContain('Token no especificado');
+    });
+
+    it('handleBrowserLogin succeeds when receiving valid callback POST', async () => {
+      let capturedUrl = '';
+      const openBrowserFn = vi.fn().mockImplementation((url: string) => {
+        capturedUrl = url;
+        const u = new URL(url);
+        const port = u.searchParams.get('port');
+        const state = u.searchParams.get('state');
+
+        setTimeout(async () => {
+          await fetch(`http://localhost:${port}/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: 'test_browser_token_123',
+              state,
+            }),
+          });
+        }, 30);
+
+        return Promise.resolve(true);
+      });
+
+      const res = await handleBrowserLogin({
+        configPath,
+        baseUrl: 'http://localhost:3000',
+        timeoutMs: 3000,
+        openBrowserFn,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('✅ Sesión iniciada correctamente');
+      expect(readStoredToken(configPath)).toBe('test_browser_token_123');
+      expect(openBrowserFn).toHaveBeenCalled();
+      expect(capturedUrl).toContain('/admin/cli-auth?port=');
+    });
+
+    it('handleBrowserLogin rejects invalid state and ignores attempt until timeout', async () => {
+      const openBrowserFn = vi.fn().mockImplementation((url: string) => {
+        const u = new URL(url);
+        const port = u.searchParams.get('port');
+
+        setTimeout(async () => {
+          const resp = await fetch(`http://localhost:${port}/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: 'test_browser_token_bad_state',
+              state: 'wrong-state',
+            }),
+          });
+          expect(resp.status).toBe(400);
+        }, 20);
+
+        return Promise.resolve(true);
+      });
+
+      const res = await handleBrowserLogin({
+        configPath,
+        baseUrl: 'http://localhost:3000',
+        timeoutMs: 150,
+        openBrowserFn,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('timeout');
+      expect(readStoredToken(configPath)).toBeNull();
+      expect(res.message).toContain('cloudcode login --token <PAT>');
+    });
+
+    it('handleBrowserLogin times out and returns fallback message if no callback is received', async () => {
+      const openBrowserFn = vi.fn().mockResolvedValue(true);
+
+      const res = await handleBrowserLogin({
+        configPath,
+        baseUrl: 'http://localhost:3000',
+        timeoutMs: 100,
+        openBrowserFn,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('timeout');
+      expect(res.message).toContain('Tiempo de espera agotado');
+      expect(res.message).toContain('cloudcode login --token <PAT>');
+    });
+
+    it('handleBrowserLogin handles browser open failure gracefully', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const openBrowserFn = vi.fn().mockResolvedValue(false);
+
+      const res = await handleBrowserLogin({
+        configPath,
+        baseUrl: 'http://localhost:3000',
+        timeoutMs: 100,
+        openBrowserFn,
+      });
+
+      expect(res.success).toBe(false);
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('No se pudo abrir el navegador automáticamente')
+      );
+      logSpy.mockRestore();
     });
 
     it('whoami reports clearly when there is no active session', async () => {
@@ -782,12 +885,30 @@ describe('CLI Standalone Tests', () => {
       logSpy.mockRestore();
     });
 
-    it('executes login via main()', async () => {
+    it('executes login via main() with --token', async () => {
       process.env.SKILLS_CONFIG_PATH = configPath;
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const code = await main(['login', '--token', 'test_main_tok']);
       expect(code).toBe(0);
       expect(readStoredToken(configPath)).toBe('test_main_tok');
+      logSpy.mockRestore();
+      delete process.env.SKILLS_CONFIG_PATH;
+    });
+
+    it('executes login via main() without token using handleBrowserLogin', async () => {
+      process.env.SKILLS_CONFIG_PATH = configPath;
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const browserLoginSpy = vi.spyOn(commands, 'handleBrowserLogin').mockResolvedValue({
+        success: true,
+        message: '✅ Sesión iniciada correctamente.',
+      });
+
+      const code = await main(['login']);
+      expect(code).toBe(0);
+      expect(browserLoginSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith('✅ Sesión iniciada correctamente.');
+
+      browserLoginSpy.mockRestore();
       logSpy.mockRestore();
       delete process.env.SKILLS_CONFIG_PATH;
     });

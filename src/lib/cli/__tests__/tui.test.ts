@@ -1754,6 +1754,12 @@ describe('TUI Tests', () => {
       let fullStdout = '';
       fakeStdout.on('data', (chunk) => { fullStdout += chunk.toString(); });
 
+      const browserLoginSpy = vi.spyOn(commands, 'handleBrowserLogin').mockResolvedValue({
+        success: false,
+        message: 'No se pudo abrir el navegador',
+        error: 'browser_error',
+      });
+
       const app = ink.render(
         React.createElement(SkillsTuiInner, {
           configPath,
@@ -1783,10 +1789,78 @@ describe('TUI Tests', () => {
       fakeStdin.write('\r');
       await new Promise((resolve) => setTimeout(resolve, 60));
 
+      expect(browserLoginSpy).toHaveBeenCalled();
       expect(onExitSpy).toHaveBeenCalled();
       expect(fullStdout).toContain('Para iniciar sesión corré: cloudcode login --token <tu_token>');
       expect(fullStdout).toContain('Generá un token en http://localhost:3000/admin/tokens si no tenés uno.');
 
+      browserLoginSpy.mockRestore();
+      app.unmount();
+    });
+
+    it('navigates to 🔑 Iniciar sesión (index 5) and displays success when handleBrowserLogin succeeds', async () => {
+      const { PassThrough } = await import('node:stream');
+      const React = (await import('react')).default;
+      const { SkillsTuiInner, loadEsm } = await import('../tui');
+      const ink = await loadEsm<typeof import('ink')>('ink');
+      const ti = await loadEsm<{ default: typeof import('ink-text-input').default }>('ink-text-input');
+
+      class FakeStdin extends PassThrough {
+        isTTY = true;
+        setRawMode() { return this; }
+        ref() { return this; }
+        unref() { return this; }
+      }
+      class FakeStdout extends PassThrough {
+        isTTY = true;
+        columns = 100;
+        rows = 24;
+      }
+
+      const fakeStdin = new FakeStdin();
+      const fakeStdout = new FakeStdout();
+      const fakeStderr = new FakeStdout();
+      const onExitSpy = vi.fn();
+      let fullStdout = '';
+      fakeStdout.on('data', (chunk) => { fullStdout += chunk.toString(); });
+
+      const browserLoginSpy = vi.spyOn(commands, 'handleBrowserLogin').mockResolvedValue({
+        success: true,
+        message: '✅ Sesión iniciada correctamente. Token guardado en config.json',
+      });
+
+      const app = ink.render(
+        React.createElement(SkillsTuiInner, {
+          configPath,
+          baseUrl: 'http://localhost:3000',
+          fetchFn: createMockFetch() as unknown as typeof fetch,
+          ink,
+          TextInput: ti.default || (ti as unknown as typeof import('ink-text-input').default),
+          onExit: onExitSpy,
+        }),
+        {
+          stdin: fakeStdin as unknown as NodeJS.ReadStream,
+          stdout: fakeStdout as unknown as NodeJS.WriteStream,
+          stderr: fakeStderr as unknown as NodeJS.WriteStream,
+          patchConsole: false,
+        }
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 60));
+
+      for (let i = 0; i < 5; i++) {
+        fakeStdin.write('\u001B[B');
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+
+      fakeStdin.write('\r');
+      await new Promise((resolve) => setTimeout(resolve, 60));
+
+      expect(browserLoginSpy).toHaveBeenCalled();
+      expect(onExitSpy).toHaveBeenCalled();
+      expect(fullStdout).toContain('✅ Sesión iniciada correctamente');
+
+      browserLoginSpy.mockRestore();
       app.unmount();
     });
 

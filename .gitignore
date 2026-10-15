@@ -27,6 +27,10 @@
 # codegraph index (local, regenerated via `codegraph update .`)
 .codegraph/
 
+# Playwright
+/test-results/
+/playwright-report/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
